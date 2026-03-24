@@ -1,76 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 220 20% 97%;
-    --foreground: 220 30% 15%;
+    --background: 225 25% 6%;
+    --foreground: 210 20% 92%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 30% 15%;
+    --card: 225 20% 10%;
+    --card-foreground: 210 20% 92%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 30% 15%;
+    --popover: 225 20% 10%;
+    --popover-foreground: 210 20% 92%;
 
-    --primary: 145 63% 42%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 152 58% 48%;
+    --primary-foreground: 225 25% 6%;
 
-    --secondary: 220 25% 92%;
-    --secondary-foreground: 220 30% 15%;
+    --secondary: 225 15% 16%;
+    --secondary-foreground: 210 20% 85%;
 
-    --muted: 220 20% 94%;
-    --muted-foreground: 220 10% 50%;
+    --muted: 225 15% 14%;
+    --muted-foreground: 220 10% 52%;
 
-    --accent: 145 63% 42%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 152 58% 48%;
+    --accent-foreground: 225 25% 6%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 88%;
-    --input: 220 15% 88%;
-    --ring: 145 63% 42%;
+    --border: 225 15% 18%;
+    --input: 225 15% 18%;
+    --ring: 152 58% 48%;
 
-    --radius: 0.75rem;
+    --radius: 0.875rem;
 
-    --header: 215 35% 25%;
-    --header-foreground: 0 0% 100%;
+    --header: 225 30% 8%;
+    --header-foreground: 210 20% 95%;
 
-    --surface-dark: 218 35% 20%;
-    --surface-dark-foreground: 0 0% 95%;
+    --surface-dark: 225 25% 12%;
+    --surface-dark-foreground: 210 20% 90%;
 
-    --live: 0 72% 51%;
-    --success: 145 63% 42%;
-    --warning: 38 92% 50%;
+    --live: 0 72% 55%;
+    --success: 152 58% 48%;
+    --warning: 38 92% 55%;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --glow-primary: 152 58% 48%;
+
+    --sidebar-background: 225 25% 8%;
+    --sidebar-foreground: 210 20% 85%;
+    --sidebar-primary: 210 20% 92%;
+    --sidebar-primary-foreground: 225 25% 6%;
+    --sidebar-accent: 225 15% 16%;
+    --sidebar-accent-foreground: 210 20% 92%;
+    --sidebar-border: 225 15% 18%;
+    --sidebar-ring: 152 58% 48%;
   }
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6, .font-display {
+  font-family: 'Space Grotesk', sans-serif;
 }
 
 @layer base {
   * {
     @apply border-border;
   }
-
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Glow effects */
+.glow-primary {
+  box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.3);
+}
+
+.glow-live {
+  box-shadow: 0 0 12px -3px hsl(var(--live) / 0.5);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 12px -3px hsl(var(--live) / 0.5); }
+  50% { box-shadow: 0 0 20px -3px hsl(var(--live) / 0.7); }
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: hsl(var(--card) / 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid hsl(var(--border) / 0.5);
+}
+
+/* Live pulse dot */
+.live-dot {
+  position: relative;
+}
+.live-dot::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -12px;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: hsl(var(--live));
+  animation: dot-pulse 1.5s ease-in-out infinite;
+}
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; transform: translateY(-50%) scale(1); }
+  50% { opacity: 0.5; transform: translateY(-50%) scale(1.3); }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
 }
