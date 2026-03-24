@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getGroupById, joinGroup, getNickname, getPredictions, calculatePoints } from '@/lib/storage';
 import { getMatches } from '@/lib/matchData';
-import { Group, Match } from '@/lib/types';
-import { ArrowLeft, Check, X } from 'lucide-react';
+import { Group } from '@/lib/types';
+import { ArrowLeft, Check, X, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NicknamePrompt from '@/components/NicknamePrompt';
+import { motion } from 'framer-motion';
 
 export default function GroupPage() {
   const { id } = useParams<{ id: string }>();
@@ -33,7 +34,6 @@ export default function GroupPage() {
     );
   }
 
-  // Calculate points for each member
   const leaderboard = group.members
     .map((member) => {
       const memberPredictions = getPredictions().filter((p) => p.nickname === member.nickname);
@@ -51,16 +51,16 @@ export default function GroupPage() {
   const userPredictions = getPredictions().filter((p) => p.nickname === nickname);
 
   return (
-    <div className="min-h-screen bg-surface-dark text-surface-dark-foreground">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-header text-header-foreground px-4 py-3 flex items-center justify-between">
+      <div className="bg-header border-b border-border/50 px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)}>
+          <button onClick={() => navigate(-1)} className="text-header-foreground/70 hover:text-header-foreground">
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <span className="text-lg font-bold">{group.name}</span>
+          <span className="text-lg font-bold font-display text-header-foreground">{group.name}</span>
         </div>
-        <Button variant="outline" size="sm" className="border-header-foreground/30 text-header-foreground text-xs">
+        <Button variant="outline" size="sm" className="border-border text-xs rounded-full h-7">
           Leave
         </Button>
       </div>
@@ -68,28 +68,37 @@ export default function GroupPage() {
       <div className="p-4 max-w-lg mx-auto space-y-6">
         {/* Leaderboard */}
         <div>
-          <h3 className="font-bold text-sm mb-3">Leaderboard</h3>
+          <h3 className="font-bold text-sm mb-3 font-display text-foreground">Leaderboard</h3>
           <div className="space-y-2">
             {leaderboard.map((member, i) => (
-              <div
+              <motion.div
                 key={member.nickname}
-                className="flex items-center justify-between rounded-lg bg-black/20 px-4 py-3"
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className={`flex items-center justify-between rounded-xl px-4 py-3 ${
+                  i === 0 ? 'bg-primary/10 border border-primary/20' : 'bg-card border border-border/50'
+                }`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-bold text-muted-foreground">{i + 1}.</span>
+                  {i === 0 ? (
+                    <Crown className="h-4 w-4 text-primary" />
+                  ) : (
+                    <span className="text-sm font-bold text-muted-foreground w-4 text-center">{i + 1}</span>
+                  )}
                   <span className="font-semibold text-sm">
                     {member.nickname === nickname ? 'You' : member.nickname}
                   </span>
                 </div>
-                <span className="font-bold text-sm">{member.points} pts</span>
-              </div>
+                <span className="font-bold text-sm font-display">{member.points} pts</span>
+              </motion.div>
             ))}
           </div>
         </div>
 
         {/* Your Predictions */}
         <div>
-          <h3 className="font-bold text-sm mb-3">Your Predictions</h3>
+          <h3 className="font-bold text-sm mb-3 font-display text-foreground">Your Predictions</h3>
           <div className="space-y-2">
             {userPredictions.length === 0 ? (
               <p className="text-sm text-muted-foreground">No predictions yet</p>
@@ -104,19 +113,17 @@ export default function GroupPage() {
                 return (
                   <div
                     key={pred.matchId}
-                    className="flex items-center justify-between rounded-lg bg-black/20 px-4 py-3"
+                    className="flex items-center justify-between rounded-xl bg-card border border-border/50 px-4 py-3"
                   >
                     <div className="flex items-center gap-2">
-                      <img src={match.homeLogo} alt="" className="h-5 w-5 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                      <span className="text-sm font-semibold">
-                        {match.homeTeam.split(' ')[0]}
-                      </span>
-                      <span className="font-bold text-sm">
+                      {match.homeLogo && (
+                        <img src={match.homeLogo} alt="" className="h-5 w-5 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                      )}
+                      <span className="text-sm font-semibold">{match.homeTeam.split(' ')[0]}</span>
+                      <span className="font-bold text-sm font-display">
                         {pred.homeScore} – {pred.awayScore}
                       </span>
-                      <span className="text-sm font-semibold">
-                        {match.awayTeam.split(' ')[0]}
-                      </span>
+                      <span className="text-sm font-semibold">{match.awayTeam.split(' ')[0]}</span>
                     </div>
                     {isFinished && (
                       isCorrect ? (
