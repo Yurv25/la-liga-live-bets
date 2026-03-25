@@ -63,6 +63,12 @@ function TeamLogo({ src, alt }: { src: string; alt: string }) {
 export default function MatchCard({ match, onPredict }: MatchCardProps) {
   const showScore = match.status !== 'NS';
   const isLive = match.status === 'LIVE';
+  const isFinished = match.status === 'FT';
+  const minutesToStart = match.status === 'NS'
+    ? (new Date(match.startTime).getTime() - Date.now()) / 60000
+    : 0;
+  const tooEarly = match.status === 'NS' && minutesToStart > 5;
+  const canPredict = !isFinished && !tooEarly;
 
   return (
     <div
@@ -73,14 +79,20 @@ export default function MatchCard({ match, onPredict }: MatchCardProps) {
       {/* Status */}
       <div className="flex items-center justify-between mb-3">
         <StatusBadge match={match} />
-        <Button
-          size="sm"
-          variant={match.status === 'NS' ? 'default' : 'outline'}
-          className="rounded-full text-xs font-semibold h-7 px-3"
-          onClick={() => onPredict(match)}
-        >
-          {match.status === 'NS' ? 'PREDICT' : 'EDIT'}
-        </Button>
+        {canPredict ? (
+          <Button
+            size="sm"
+            variant={match.status === 'NS' ? 'default' : 'outline'}
+            className="rounded-full text-xs font-semibold h-7 px-3"
+            onClick={() => onPredict(match)}
+          >
+            {match.status === 'NS' ? 'PREDICT' : 'EDIT'}
+          </Button>
+        ) : tooEarly ? (
+          <span className="text-[10px] text-muted-foreground font-medium">
+            Opens {Math.ceil(minutesToStart - 5)}m before KO
+          </span>
+        ) : null}
       </div>
 
       {/* Teams */}
