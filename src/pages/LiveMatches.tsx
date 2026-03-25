@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Match } from '@/lib/types';
 import { getMatches } from '@/lib/matchData';
-import { fetchAllMatches, getApiKey } from '@/lib/api';
+import { fetchAllMatches } from '@/lib/api';
 import { getNickname } from '@/lib/storage';
 import MatchCard from '@/components/MatchCard';
 import PredictionModal from '@/components/PredictionModal';
 import NicknamePrompt from '@/components/NicknamePrompt';
-import ApiKeyPrompt from '@/components/ApiKeyPrompt';
 import { Trophy, Zap, CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,23 +17,18 @@ export default function LiveMatches() {
   const [tab, setTab] = useState<Tab>('all');
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [nickname, setNickname2] = useState(getNickname());
-  const [hasApiKey, setHasApiKey] = useState(!!getApiKey());
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const loadMatches = useCallback(async () => {
-    if (getApiKey()) {
-      setLoading(true);
-      try {
-        const data = await fetchAllMatches();
-        if (data.length > 0) setMatches(data);
-      } catch {
-        // fallback to mock
-      }
-      setLoading(false);
-    } else {
-      setMatches(getMatches());
+    setLoading(true);
+    try {
+      const data = await fetchAllMatches();
+      if (data.length > 0) setMatches(data);
+    } catch {
+      // fallback to mock
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -69,14 +63,7 @@ export default function LiveMatches() {
             Praedictio
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          {hasApiKey && (
-            <span className="text-[10px] font-medium text-success bg-success/10 px-2 py-0.5 rounded-full">
-              LIVE
-            </span>
-          )}
-          <span className="text-xs text-muted-foreground font-medium">La Liga</span>
-        </div>
+        <span className="text-xs text-muted-foreground font-medium">La Liga</span>
       </div>
 
       {/* Tabs */}
@@ -150,11 +137,6 @@ export default function LiveMatches() {
 
       {/* Nickname prompt */}
       {!nickname && <NicknamePrompt onSet={(n) => setNickname2(n)} />}
-
-      {/* API key prompt */}
-      {!hasApiKey && nickname && (
-        <ApiKeyPrompt onSet={() => { setHasApiKey(true); loadMatches(); }} />
-      )}
 
       {/* Bottom nav */}
       <div className="fixed bottom-0 left-0 right-0 glass flex justify-around py-3 max-w-lg mx-auto safe-area-inset-bottom">
