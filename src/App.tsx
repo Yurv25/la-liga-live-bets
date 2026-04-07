@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import BottomNav from "@/components/BottomNav";
 import Index from "./pages/Index";
 import GroupsList from "./pages/GroupsList";
 import CreateGroup from "./pages/CreateGroup";
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/group/:id" element={<GroupPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <BottomNav />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
