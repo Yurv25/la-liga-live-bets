@@ -64,11 +64,7 @@ export default function MatchCard({ match, onPredict }: MatchCardProps) {
   const showScore = match.status !== 'NS';
   const isLive = match.status === 'LIVE';
   const isFinished = match.status === 'FT';
-  const minutesToStart = match.status === 'NS'
-    ? (new Date(match.startTime).getTime() - Date.now()) / 60000
-    : 0;
-  const tooEarly = match.status === 'NS' && minutesToStart > 5;
-  const canPredict = match.status === 'NS' && !tooEarly;
+  const canPredict = match.status === 'NS';
 
   return (
     <div
@@ -79,7 +75,7 @@ export default function MatchCard({ match, onPredict }: MatchCardProps) {
       {/* Status */}
       <div className="flex items-center justify-between mb-3">
         <StatusBadge match={match} />
-        {canPredict ? (
+        {canPredict && (
           <Button
             size="sm"
             className="rounded-full text-xs font-semibold h-7 px-3"
@@ -87,11 +83,7 @@ export default function MatchCard({ match, onPredict }: MatchCardProps) {
           >
             PREDICT
           </Button>
-        ) : tooEarly ? (
-          <span className="text-[10px] text-muted-foreground font-medium">
-            Opens {Math.ceil(minutesToStart - 5)}m before KO
-          </span>
-        ) : null}
+        )}
       </div>
 
       {/* Teams */}
