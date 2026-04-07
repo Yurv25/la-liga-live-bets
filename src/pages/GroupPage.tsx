@@ -1,19 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getGroupById, joinGroup, getNickname, getPredictions, calculatePoints } from '@/lib/storage';
 import { getMatches } from '@/lib/matchData';
-import { Group } from '@/lib/types';
-import { ArrowLeft, Check, X, Crown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { fetchAllMatches } from '@/lib/api';
+import { COMPETITIONS } from '@/lib/competitions';
+import { Group, Match } from '@/lib/types';
+import { ArrowLeft, Crown, CalendarDays, Trophy } from 'lucide-react';
 import NicknamePrompt from '@/components/NicknamePrompt';
+import MatchCard from '@/components/MatchCard';
+import PredictionModal from '@/components/PredictionModal';
 import { motion } from 'framer-motion';
+
+type GroupTab = 'leaderboard' | 'matches';
 
 export default function GroupPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [group, setGroup] = useState<Group | null>(null);
   const [nickname, setNickname2] = useState(getNickname());
-  const matches = getMatches();
+  const [activeTab, setActiveTab] = useState<GroupTab>('leaderboard');
+  const [matches, setMatches] = useState<Match[]>(getMatches());
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -26,6 +33,21 @@ export default function GroupPage() {
     }
   }, [id, nickname]);
 
+  const loadMatches = useCallback(async () => {
+    try {
+      const data = await fetchAllMatches();
+      if (data.length > 0) setMatches(data);
+    } catch {
+      // fallback
+    }
+  }, []);
+
+  useEffect(() => {
+    loadMatches();
+    const interval = setInterval(loadMatches, 30000);
+    return () => clearInterval(interval);
+  }, [loadMatches]);
+
   if (!group) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -33,6 +55,9 @@ export default function GroupPage() {
       </div>
     );
   }
+
+  const competition = COMPETITIONS.find((c) => c.id === group.competitionId);
+  const upcomingMatches = matches.filter((m) => m.status === 'NS');
 
   const leaderboard = group.members
     .map((member) => {
@@ -48,27 +73,50 @@ export default function GroupPage() {
     })
     .sort((a, b) => b.points - a.points);
 
-  const userPredictions = getPredictions().filter((p) => p.nickname === nickname);
+  const tabItems: { key: GroupTab; label: string; icon: React.ReactNode }[] = [
+    { key: 'leaderboard', label: 'Leaderboard', icon: <Trophy className="h-4 w-4" /> },
+    { key: 'matches', label: 'Matches', icon: <CalendarDays className="h-4 w-4" /> },
+  ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <div className="bg-header border-b border-border/50 px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="text-header-foreground/70 hover:text-header-foreground">
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <span className="text-lg font-bold font-display text-header-foreground">{group.name}</span>
+          <div>
+            <span className="text-lg font-bold font-display text-header-foreground block">{group.name}</span>
+            {competition && (
+              <span className="text-xs text-muted-foreground">
+                {competition.logo} {competition.name}
+              </span>
+            )}
+          </div>
         </div>
-        <Button variant="outline" size="sm" className="border-border text-xs rounded-full h-7">
-          Leave
-        </Button>
       </div>
 
-      <div className="p-4 max-w-lg mx-auto space-y-6">
-        {/* Leaderboard */}
-        <div>
-          <h3 className="font-bold text-sm mb-3 font-display text-foreground">Leaderboard</h3>
+      {/* Tabs */}
+      <div className="flex gap-2 px-4 py-3 bg-header/50 border-b border-border/30">
+        {tabItems.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setActiveTab(t.key)}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+              activeTab === t.key
+                ? 'bg-primary text-primary-foreground shadow-lg glow-primary'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+            }`}
+          >
+            {t.icon}
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="p-4 max-w-lg mx-auto">
+        {activeTab === 'leaderboard' && (
           <div className="space-y-2">
             {leaderboard.map((member, i) => (
               <motion.div
@@ -94,51 +142,37 @@ export default function GroupPage() {
               </motion.div>
             ))}
           </div>
-        </div>
+        )}
 
-        {/* Your Predictions */}
-        <div>
-          <h3 className="font-bold text-sm mb-3 font-display text-foreground">Your Predictions</h3>
-          <div className="space-y-2">
-            {userPredictions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No predictions yet</p>
+        {activeTab === 'matches' && (
+          <div className="space-y-3">
+            {upcomingMatches.length === 0 ? (
+              <p className="text-center text-muted-foreground py-12 text-sm">No upcoming matches</p>
             ) : (
-              userPredictions.map((pred) => {
-                const match = matches.find((m) => m.id === pred.matchId);
-                if (!match) return null;
-                const pts = calculatePoints(pred, match.homeScore, match.awayScore, match.status);
-                const isCorrect = pts > 0;
-                const isFinished = match.status === 'FT';
-
-                return (
-                  <div
-                    key={pred.matchId}
-                    className="flex items-center justify-between rounded-xl bg-card border border-border/50 px-4 py-3"
-                  >
-                    <div className="flex items-center gap-2">
-                      {match.homeLogo && (
-                        <img src={match.homeLogo} alt="" className="h-5 w-5 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                      )}
-                      <span className="text-sm font-semibold">{match.homeTeam.split(' ')[0]}</span>
-                      <span className="font-bold text-sm font-display">
-                        {pred.homeScore} – {pred.awayScore}
-                      </span>
-                      <span className="text-sm font-semibold">{match.awayTeam.split(' ')[0]}</span>
-                    </div>
-                    {isFinished && (
-                      isCorrect ? (
-                        <Check className="h-5 w-5 text-success" />
-                      ) : (
-                        <X className="h-5 w-5 text-live" />
-                      )
-                    )}
-                  </div>
-                );
-              })
+              upcomingMatches.map((match, i) => (
+                <motion.div
+                  key={match.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                >
+                  <MatchCard
+                    match={match}
+                    onPredict={(m) => {
+                      if (!nickname) return;
+                      setSelectedMatch(m);
+                    }}
+                  />
+                </motion.div>
+              ))
             )}
           </div>
-        </div>
+        )}
       </div>
+
+      {selectedMatch && (
+        <PredictionModal match={selectedMatch} onClose={() => setSelectedMatch(null)} />
+      )}
 
       {!nickname && <NicknamePrompt onSet={(n) => setNickname2(n)} />}
     </div>

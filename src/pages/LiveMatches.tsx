@@ -7,7 +7,6 @@ import MatchCard from '@/components/MatchCard';
 import PredictionModal from '@/components/PredictionModal';
 import NicknamePrompt from '@/components/NicknamePrompt';
 import { Trophy, Zap, CalendarDays } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type Tab = 'all' | 'live' | 'upcoming';
@@ -18,7 +17,6 @@ export default function LiveMatches() {
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [nickname, setNickname2] = useState(getNickname());
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const loadMatches = useCallback(async () => {
     setLoading(true);
@@ -137,26 +135,6 @@ export default function LiveMatches() {
 
       {/* Nickname prompt */}
       {!nickname && <NicknamePrompt onSet={(n) => setNickname2(n)} />}
-
-      {/* Bottom nav */}
-      <div className="fixed bottom-0 left-0 right-0 glass flex justify-around py-3 max-w-lg mx-auto safe-area-inset-bottom">
-        <button className="flex flex-col items-center text-primary text-xs font-medium gap-1">
-          <Trophy className="h-5 w-5" />
-          Matches
-        </button>
-        <button
-          onClick={() => navigate('/groups')}
-          className="flex flex-col items-center text-muted-foreground text-xs font-medium gap-1 hover:text-foreground transition-colors"
-        >
-          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
-          Groups
-        </button>
-      </div>
     </div>
   );
 }

@@ -39,11 +39,12 @@ function saveGroups(groups: Group[]): void {
   localStorage.setItem(GROUPS_KEY, JSON.stringify(groups));
 }
 
-export function createGroup(name: string, creatorNickname: string): Group {
+export function createGroup(name: string, creatorNickname: string, competitionId: string = 'laliga'): Group {
   const groups = getGroups();
   const group: Group = {
     id: Math.random().toString(36).substring(2, 8).toUpperCase(),
     name,
+    competitionId,
     members: [{ nickname: creatorNickname, predictions: [], points: 0 }],
   };
   groups.push(group);

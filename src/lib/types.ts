@@ -22,6 +22,7 @@ export interface Prediction {
 export interface Group {
   id: string;
   name: string;
+  competitionId: string;
   members: GroupMember[];
 }
 

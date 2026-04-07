@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createGroup, getNickname } from '@/lib/storage';
+import { COMPETITIONS } from '@/lib/competitions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Copy, Check } from 'lucide-react';
@@ -10,6 +11,7 @@ import { motion } from 'framer-motion';
 
 export default function CreateGroup() {
   const [groupName, setGroupName] = useState('');
+  const [competitionId, setCompetitionId] = useState('laliga');
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [nickname, setNickname2] = useState(getNickname());
   const [copied, setCopied] = useState(false);
@@ -17,7 +19,7 @@ export default function CreateGroup() {
 
   const handleCreate = () => {
     if (!groupName.trim() || !nickname) return;
-    const group = createGroup(groupName.trim(), nickname);
+    const group = createGroup(groupName.trim(), nickname, competitionId);
     setCreatedId(group.id);
     toast.success('Group created!');
   };
@@ -32,7 +34,7 @@ export default function CreateGroup() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
       <div className="bg-header border-b border-border/50 px-4 py-4 flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="text-header-foreground/70 hover:text-header-foreground">
           <ArrowLeft className="h-5 w-5" />
@@ -49,6 +51,30 @@ export default function CreateGroup() {
             placeholder="Friends League"
             className="rounded-xl"
           />
+        </div>
+
+        {/* Competition Selection */}
+        <div>
+          <label className="text-sm font-semibold text-foreground block mb-2">Competition</label>
+          <div className="grid grid-cols-2 gap-2">
+            {COMPETITIONS.map((comp) => (
+              <button
+                key={comp.id}
+                onClick={() => setCompetitionId(comp.id)}
+                className={`flex items-center gap-2 rounded-xl border px-3 py-3 text-left transition-all ${
+                  competitionId === comp.id
+                    ? 'border-primary bg-primary/10 text-foreground'
+                    : 'border-border/50 bg-card text-muted-foreground hover:border-border hover:text-foreground'
+                }`}
+              >
+                <span className="text-lg">{comp.logo}</span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate">{comp.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{comp.country}</p>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
 
         <Button
