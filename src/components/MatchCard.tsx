@@ -68,7 +68,7 @@ export default function MatchCard({ match, onPredict }: MatchCardProps) {
     ? (new Date(match.startTime).getTime() - Date.now()) / 60000
     : 0;
   const tooEarly = match.status === 'NS' && minutesToStart > 5;
-  const canPredict = !isFinished && !tooEarly;
+  const canPredict = match.status === 'NS' && !tooEarly;
 
   return (
     <div
@@ -82,11 +82,10 @@ export default function MatchCard({ match, onPredict }: MatchCardProps) {
         {canPredict ? (
           <Button
             size="sm"
-            variant={match.status === 'NS' ? 'default' : 'outline'}
             className="rounded-full text-xs font-semibold h-7 px-3"
             onClick={() => onPredict(match)}
           >
-            {match.status === 'NS' ? 'PREDICT' : 'EDIT'}
+            PREDICT
           </Button>
         ) : tooEarly ? (
           <span className="text-[10px] text-muted-foreground font-medium">
