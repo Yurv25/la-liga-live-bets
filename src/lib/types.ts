@@ -9,6 +9,8 @@ export interface Match {
   startTime: string;
   homeLogo: string;
   awayLogo: string;
+  homeTeamId?: number | null;
+  awayTeamId?: number | null;
 }
 
 export interface Prediction {
