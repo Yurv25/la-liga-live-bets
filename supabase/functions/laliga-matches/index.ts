@@ -23,6 +23,35 @@ function teamLogoUrl(teamId?: number): string {
   return `https://sports.bzzoiro.com/img/team/${teamId}/`;
 }
 
+function extractTeamId(ev: any, side: "home" | "away"): number | null {
+  // Try multiple possible field locations for team ID
+  const obj = ev[`${side}_team_obj`];
+  if (obj?.id) return obj.id;
+  const directId = ev[`${side}_team_id`];
+  if (directId) return directId;
+  return null;
+}
+
+function mapMatch(ev: any, fallbackStartTime?: string) {
+  const homeTeamId = extractTeamId(ev, "home");
+  const awayTeamId = extractTeamId(ev, "away");
+
+  return {
+    id: String(ev.id),
+    homeTeam: ev.home_team,
+    awayTeam: ev.away_team,
+    homeScore: ev.home_score ?? 0,
+    awayScore: ev.away_score ?? 0,
+    status: normalizeStatus(ev.status),
+    minute: ev.current_minute ?? ev.minute ?? null,
+    startTime: ev.event_date ?? fallbackStartTime ?? new Date().toISOString(),
+    homeTeamId: homeTeamId,
+    awayTeamId: awayTeamId,
+    homeLogo: teamLogoUrl(homeTeamId ?? undefined),
+    awayLogo: teamLogoUrl(awayTeamId ?? undefined),
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -55,31 +84,8 @@ Deno.serve(async (req) => {
       (m: any) => m.league?.name === "La Liga"
     );
 
-    const mappedEvents = events.map((ev: any) => ({
-      id: String(ev.id),
-      homeTeam: ev.home_team,
-      awayTeam: ev.away_team,
-      homeScore: ev.home_score ?? 0,
-      awayScore: ev.away_score ?? 0,
-      status: normalizeStatus(ev.status),
-      minute: ev.current_minute ?? ev.minute ?? null,
-      startTime: ev.event_date,
-      homeLogo: teamLogoUrl(ev.home_team_obj?.id),
-      awayLogo: teamLogoUrl(ev.away_team_obj?.id),
-    }));
-
-    const mappedLive = liveMatches.map((m: any) => ({
-      id: String(m.id),
-      homeTeam: m.home_team,
-      awayTeam: m.away_team,
-      homeScore: m.home_score,
-      awayScore: m.away_score,
-      status: normalizeStatus(m.status),
-      minute: m.current_minute ?? m.minute ?? null,
-      startTime: new Date().toISOString(),
-      homeLogo: teamLogoUrl(m.home_team_obj?.id),
-      awayLogo: teamLogoUrl(m.away_team_obj?.id),
-    }));
+    const mappedEvents = events.map((ev: any) => mapMatch(ev));
+    const mappedLive = liveMatches.map((m: any) => mapMatch(m, new Date().toISOString()));
 
     // Merge live data over events
     const liveMap = new Map(mappedLive.map((m: any) => [m.id, m]));
