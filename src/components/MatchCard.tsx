@@ -1,6 +1,8 @@
 import { Match } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { getFallbackCrest, DEFAULT_CREST } from '@/lib/teamCrests';
 import { motion } from 'framer-motion';
+import { useCallback } from 'react';
 
 interface MatchCardProps {
   match: Match;
@@ -41,6 +43,21 @@ function StatusBadge({ match }: { match: Match }) {
 }
 
 function TeamLogo({ src, alt }: { src: string; alt: string }) {
+  const handleError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    const fallback = getFallbackCrest(img.src, alt);
+    
+    if (fallback === DEFAULT_CREST) {
+      // Replace with initial letter instead of loading another image
+      img.style.display = 'none';
+      if (img.parentElement) {
+        img.parentElement.innerHTML = `<span class="text-lg font-bold text-muted-foreground">${alt.charAt(0)}</span>`;
+      }
+    } else {
+      img.src = fallback;
+    }
+  }, [alt]);
+
   return (
     <div className="h-10 w-10 rounded-lg bg-secondary/50 flex items-center justify-center overflow-hidden shrink-0">
       {src ? (
@@ -48,10 +65,7 @@ function TeamLogo({ src, alt }: { src: string; alt: string }) {
           src={src}
           alt={alt}
           className="h-7 w-7 object-contain"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = 'none';
-            (e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-lg font-bold text-muted-foreground">${alt.charAt(0)}</span>`;
-          }}
+          onError={handleError}
         />
       ) : (
         <span className="text-lg font-bold text-muted-foreground">{alt.charAt(0)}</span>
@@ -63,7 +77,6 @@ function TeamLogo({ src, alt }: { src: string; alt: string }) {
 export default function MatchCard({ match, onPredict }: MatchCardProps) {
   const showScore = match.status !== 'NS';
   const isLive = match.status === 'LIVE';
-  const isFinished = match.status === 'FT';
   const canPredict = match.status === 'NS';
 
   return (
