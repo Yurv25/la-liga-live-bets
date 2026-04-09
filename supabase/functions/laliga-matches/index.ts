@@ -14,39 +14,13 @@ function normalizeStatus(status: string): "LIVE" | "HT" | "FT" | "NS" {
   if (s === "inprogress" || s === "live" || s === "in progress") return "LIVE";
   if (s === "halftime" || s === "ht" || s === "half time") return "HT";
   if (s === "finished" || s === "ft" || s === "ended") return "FT";
+  if (s === "notstarted" || s === "ns" || s === "not started") return "NS";
   return "NS";
 }
 
 function teamLogoUrl(teamId?: number): string {
   if (!teamId) return "";
   return `https://sports.bzzoiro.com/img/team/${teamId}/`;
-}
-
-interface BzzoiroEvent {
-  id: number;
-  home_team: string;
-  away_team: string;
-  home_team_id?: number;
-  away_team_id?: number;
-  league: { name: string; country: string };
-  event_date: string;
-  status: string;
-  home_score?: number | null;
-  away_score?: number | null;
-  minute?: number | null;
-}
-
-interface BzzoiroLive {
-  id: number;
-  home_team: string;
-  away_team: string;
-  home_team_id?: number;
-  away_team_id?: number;
-  home_score: number;
-  away_score: number;
-  status: string;
-  minute: number | null;
-  league: { name: string; country: string };
 }
 
 Deno.serve(async (req) => {
@@ -76,15 +50,9 @@ Deno.serve(async (req) => {
     const eventsData = await eventsRes.json();
     const liveData = await liveRes.json();
 
-    // Log first event to see actual shape
-    const events: BzzoiroEvent[] = eventsData.results || eventsData;
-    if (events.length > 0) {
-      console.log("Sample event keys:", JSON.stringify(Object.keys(events[0])));
-      console.log("Sample event:", JSON.stringify(events[0]));
-    }
-
-    const liveMatches: BzzoiroLive[] = (liveData.results || liveData).filter(
-      (m: BzzoiroLive) => m.league?.name === "La Liga"
+    const events = eventsData.results || eventsData;
+    const liveMatches = ((liveData.results || liveData) as any[]).filter(
+      (m: any) => m.league?.name === "La Liga"
     );
 
     const mappedEvents = events.map((ev: any) => ({
@@ -94,10 +62,10 @@ Deno.serve(async (req) => {
       homeScore: ev.home_score ?? 0,
       awayScore: ev.away_score ?? 0,
       status: normalizeStatus(ev.status),
-      minute: ev.minute ?? null,
+      minute: ev.current_minute ?? ev.minute ?? null,
       startTime: ev.event_date,
-      homeLogo: teamLogoUrl(ev.home_team_id || ev.home_id || ev.homeTeamId),
-      awayLogo: teamLogoUrl(ev.away_team_id || ev.away_id || ev.awayTeamId),
+      homeLogo: teamLogoUrl(ev.home_team_obj?.id),
+      awayLogo: teamLogoUrl(ev.away_team_obj?.id),
     }));
 
     const mappedLive = liveMatches.map((m: any) => ({
@@ -107,17 +75,17 @@ Deno.serve(async (req) => {
       homeScore: m.home_score,
       awayScore: m.away_score,
       status: normalizeStatus(m.status),
-      minute: m.minute,
+      minute: m.current_minute ?? m.minute ?? null,
       startTime: new Date().toISOString(),
-      homeLogo: teamLogoUrl(m.home_team_id || m.home_id || m.homeTeamId),
-      awayLogo: teamLogoUrl(m.away_team_id || m.away_id || m.awayTeamId),
+      homeLogo: teamLogoUrl(m.home_team_obj?.id),
+      awayLogo: teamLogoUrl(m.away_team_obj?.id),
     }));
 
     // Merge live data over events
-    const liveMap = new Map(mappedLive.map((m) => [m.id, m]));
-    const merged = mappedEvents.map((ev) => liveMap.get(ev.id) || ev);
-    mappedLive.forEach((m) => {
-      if (!mappedEvents.find((ev) => ev.id === m.id)) {
+    const liveMap = new Map(mappedLive.map((m: any) => [m.id, m]));
+    const merged = mappedEvents.map((ev: any) => liveMap.get(ev.id) || ev);
+    mappedLive.forEach((m: any) => {
+      if (!mappedEvents.find((ev: any) => ev.id === m.id)) {
         merged.push(m);
       }
     });
