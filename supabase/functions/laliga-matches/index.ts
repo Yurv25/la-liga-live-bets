@@ -76,12 +76,18 @@ Deno.serve(async (req) => {
     const eventsData = await eventsRes.json();
     const liveData = await liveRes.json();
 
+    // Log first event to see actual shape
     const events: BzzoiroEvent[] = eventsData.results || eventsData;
+    if (events.length > 0) {
+      console.log("Sample event keys:", JSON.stringify(Object.keys(events[0])));
+      console.log("Sample event:", JSON.stringify(events[0]));
+    }
+
     const liveMatches: BzzoiroLive[] = (liveData.results || liveData).filter(
       (m: BzzoiroLive) => m.league?.name === "La Liga"
     );
 
-    const mappedEvents = events.map((ev) => ({
+    const mappedEvents = events.map((ev: any) => ({
       id: String(ev.id),
       homeTeam: ev.home_team,
       awayTeam: ev.away_team,
@@ -90,11 +96,11 @@ Deno.serve(async (req) => {
       status: normalizeStatus(ev.status),
       minute: ev.minute ?? null,
       startTime: ev.event_date,
-      homeLogo: teamLogoUrl(ev.home_team_id),
-      awayLogo: teamLogoUrl(ev.away_team_id),
+      homeLogo: teamLogoUrl(ev.home_team_id || ev.home_id || ev.homeTeamId),
+      awayLogo: teamLogoUrl(ev.away_team_id || ev.away_id || ev.awayTeamId),
     }));
 
-    const mappedLive = liveMatches.map((m) => ({
+    const mappedLive = liveMatches.map((m: any) => ({
       id: String(m.id),
       homeTeam: m.home_team,
       awayTeam: m.away_team,
@@ -103,8 +109,8 @@ Deno.serve(async (req) => {
       status: normalizeStatus(m.status),
       minute: m.minute,
       startTime: new Date().toISOString(),
-      homeLogo: teamLogoUrl(m.home_team_id),
-      awayLogo: teamLogoUrl(m.away_team_id),
+      homeLogo: teamLogoUrl(m.home_team_id || m.home_id || m.homeTeamId),
+      awayLogo: teamLogoUrl(m.away_team_id || m.away_id || m.awayTeamId),
     }));
 
     // Merge live data over events
