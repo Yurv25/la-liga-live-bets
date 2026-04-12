@@ -23,18 +23,19 @@ function teamLogoUrl(teamId?: number): string {
   return `https://sports.bzzoiro.com/img/team/${teamId}/`;
 }
 
-function extractTeamId(ev: any, side: "home" | "away"): number | null {
-  // Try multiple possible field locations for team ID
+function extractTeamApiId(ev: any, side: "home" | "away"): number | null {
+  // Use api_id (not id) — api_id is what the /img/team/{api_id}/ endpoint expects
   const obj = ev[`${side}_team_obj`];
-  if (obj?.id) return obj.id;
+  if (obj?.api_id) return obj.api_id;
+  if (obj?.id) return obj.id; // fallback to internal id if api_id missing
   const directId = ev[`${side}_team_id`];
   if (directId) return directId;
   return null;
 }
 
 function mapMatch(ev: any, fallbackStartTime?: string) {
-  const homeTeamId = extractTeamId(ev, "home");
-  const awayTeamId = extractTeamId(ev, "away");
+  const homeTeamId = extractTeamApiId(ev, "home");
+  const awayTeamId = extractTeamApiId(ev, "away");
 
   return {
     id: String(ev.id),
