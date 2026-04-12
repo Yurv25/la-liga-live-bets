@@ -81,12 +81,6 @@ Deno.serve(async (req) => {
     const liveData = await liveRes.json();
 
     const events = eventsData.results || eventsData;
-    // Log first event's full structure for debugging team IDs
-    if (events.length > 0) {
-      const sample = events[0];
-      console.log("SAMPLE EVENT KEYS:", Object.keys(sample));
-      console.log("SAMPLE EVENT:", JSON.stringify(sample, null, 2));
-    }
     const liveMatches = ((liveData.results || liveData) as any[]).filter(
       (m: any) => m.league?.name === "La Liga"
     );
