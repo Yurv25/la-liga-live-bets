@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { Match } from '@/lib/types';
-import { getMatches } from '@/lib/matchData';
-import { fetchAllMatches } from '@/lib/api';
 import { getNickname } from '@/lib/storage';
+import { useFilteredMatches } from '@/hooks/useMatches';
 import MatchCard from '@/components/MatchCard';
 import PredictionModal from '@/components/PredictionModal';
 import NicknamePrompt from '@/components/NicknamePrompt';
@@ -12,36 +11,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 type Tab = 'all' | 'live' | 'upcoming';
 
 export default function LiveMatches() {
-  const [matches, setMatches] = useState<Match[]>(getMatches());
   const [tab, setTab] = useState<Tab>('all');
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [nickname, setNickname2] = useState(getNickname());
-  const [loading, setLoading] = useState(false);
 
-  const loadMatches = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await fetchAllMatches();
-      if (data.length > 0) setMatches(data);
-    } catch {
-      // fallback to mock
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    loadMatches();
-    const interval = setInterval(loadMatches, 20000);
-    return () => clearInterval(interval);
-  }, [loadMatches]);
-
-  const filteredMatches = matches.filter((m) => {
-    if (tab === 'live') return m.status === 'LIVE' || m.status === 'HT';
-    if (tab === 'upcoming') return m.status === 'NS';
-    return true;
-  });
-
-  const liveCount = matches.filter((m) => m.status === 'LIVE' || m.status === 'HT').length;
+  const { matches: filteredMatches, loading, liveCount } = useFilteredMatches(tab);
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
     { key: 'all', label: 'All', icon: <Trophy className="h-4 w-4" /> },
