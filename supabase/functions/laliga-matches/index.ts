@@ -34,8 +34,8 @@ function extractTeamApiId(ev: any, side: "home" | "away"): number | null {
 }
 
 function mapMatch(ev: any, fallbackStartTime?: string) {
-  const homeTeamId = extractTeamId(ev, "home");
-  const awayTeamId = extractTeamId(ev, "away");
+  const homeTeamId = extractTeamApiId(ev, "home");
+  const awayTeamId = extractTeamApiId(ev, "away");
 
   return {
     id: String(ev.id),
