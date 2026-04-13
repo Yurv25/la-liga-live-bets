@@ -78,65 +78,28 @@ function TeamLogo({ src, alt }: { src: string; alt: string }) {
 
 function PredictionBadge({ prediction, match }: { prediction: Prediction; match: Match }) {
   const isFinished = match.status === 'FT';
-  
-  if (isFinished) {
-    const points = calculatePoints(prediction, match.homeScore, match.awayScore, match.status);
-    const isExact = points === 3;
-    const isCorrectWinner = points === 1;
-    
-    return (
-      <div className={`mt-3 rounded-lg border px-3 py-2 ${
-        isExact 
-          ? 'border-primary/30 bg-primary/10' 
-          : isCorrectWinner 
-            ? 'border-warning/30 bg-warning/10' 
-            : 'border-destructive/20 bg-destructive/5'
-      }`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            {isExact ? (
-              <Trophy className="h-3.5 w-3.5 text-primary" />
-            ) : isCorrectWinner ? (
-              <Check className="h-3.5 w-3.5 text-warning" />
-            ) : (
-              <X className="h-3.5 w-3.5 text-destructive" />
-            )}
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-              Your prediction
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className={`text-sm font-bold tabular-nums ${
-              isExact ? 'text-primary' : isCorrectWinner ? 'text-warning' : 'text-muted-foreground'
-            }`}>
-              {prediction.homeScore} – {prediction.awayScore}
-            </span>
-            <span className={`text-[10px] font-bold rounded-full px-1.5 py-0.5 ${
-              isExact 
-                ? 'bg-primary/20 text-primary' 
-                : isCorrectWinner 
-                  ? 'bg-warning/20 text-warning' 
-                  : 'bg-destructive/10 text-destructive'
-            }`}>
-              +{points}
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const points = isFinished ? calculatePoints(prediction, match.homeScore, match.awayScore, match.status) : 0;
+  const isExact = points === 3;
+  const isCorrectWinner = points === 1;
 
-  // For NS / LIVE / HT — just show the prediction inline
+  const color = isFinished
+    ? isExact ? 'text-primary' : isCorrectWinner ? 'text-warning' : 'text-destructive'
+    : 'text-muted-foreground';
+
   return (
-    <div className="mt-3 rounded-lg border border-border/50 bg-secondary/30 px-3 py-2">
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-          Your prediction
+    <div className="flex items-center justify-center gap-2 mt-2">
+      <span className={`text-[11px] font-bold tabular-nums ${color}`}>
+        {prediction.homeScore} – {prediction.awayScore}
+      </span>
+      {isFinished && (
+        <span className={`text-[9px] font-bold rounded-full px-1.5 py-0.5 ${
+          isExact ? 'bg-primary/15 text-primary'
+            : isCorrectWinner ? 'bg-warning/15 text-warning'
+            : 'bg-destructive/10 text-destructive'
+        }`}>
+          +{points}
         </span>
-        <span className="text-sm font-bold tabular-nums text-foreground">
-          {prediction.homeScore} – {prediction.awayScore}
-        </span>
-      </div>
+      )}
     </div>
   );
 }
