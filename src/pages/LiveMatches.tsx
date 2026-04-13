@@ -14,8 +14,21 @@ export default function LiveMatches() {
   const [tab, setTab] = useState<Tab>('all');
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [nickname, setNickname2] = useState(getNickname());
+  const [predictionVersion, setPredictionVersion] = useState(0);
 
   const { matches: filteredMatches, loading, liveCount } = useFilteredMatches(tab);
+
+  const predictionsMap = useMemo(() => {
+    // predictionVersion is used to trigger re-computation
+    void predictionVersion;
+    const predictions = getPredictions();
+    const map = new Map<string, typeof predictions[0]>();
+    const nick = getNickname();
+    if (nick) {
+      predictions.filter(p => p.nickname === nick).forEach(p => map.set(p.matchId, p));
+    }
+    return map;
+  }, [predictionVersion, filteredMatches]);
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
     { key: 'all', label: 'All', icon: <Trophy className="h-4 w-4" /> },
