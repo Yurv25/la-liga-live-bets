@@ -116,7 +116,13 @@ class MatchStore {
   }
 
   private startPolling() {
-    this.fetchMatches().then(() => this.scheduleNext());
+    // Defer to avoid mutating state during useSyncExternalStore's subscribe call
+    const timer = setTimeout(() => {
+      if (this.refCount > 0) {
+        this.fetchMatches().then(() => this.scheduleNext());
+      }
+    }, 0);
+    this.timers.push(timer);
   }
 
   private stopPolling() {
