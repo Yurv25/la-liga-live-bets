@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Match } from '@/lib/types';
-import { getNickname } from '@/lib/storage';
+import { getNickname, getPredictions } from '@/lib/storage';
 import { useFilteredMatches } from '@/hooks/useMatches';
 import MatchCard from '@/components/MatchCard';
 import PredictionModal from '@/components/PredictionModal';
