@@ -7,10 +7,10 @@ type Tab = 'all' | 'live' | 'upcoming';
 export function useMatches(competitionId = 'laliga') {
   const store = useMemo(() => getMatchStore(competitionId), [competitionId]);
 
-  const state = useSyncExternalStore(
-    (cb) => store.subscribe(cb),
-    () => store.getSnapshot()
-  );
+  const subscribe = useMemo(() => (cb: () => void) => store.subscribe(cb), [store]);
+  const getSnapshot = useMemo(() => () => store.getSnapshot(), [store]);
+
+  const state = useSyncExternalStore(subscribe, getSnapshot);
 
   return state;
 }
