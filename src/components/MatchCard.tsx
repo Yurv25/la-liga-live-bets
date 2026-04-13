@@ -1,11 +1,14 @@
-import { Match } from '@/lib/types';
+import { Match, Prediction } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { getFallbackCrest, DEFAULT_CREST } from '@/lib/teamCrests';
 import { motion } from 'framer-motion';
 import { useCallback } from 'react';
+import { calculatePoints } from '@/lib/storage';
+import { Check, X, Trophy } from 'lucide-react';
 
 interface MatchCardProps {
   match: Match;
+  prediction?: Prediction | null;
   onPredict: (match: Match) => void;
 }
 
@@ -48,7 +51,6 @@ function TeamLogo({ src, alt }: { src: string; alt: string }) {
     const fallback = getFallbackCrest(img.src, alt);
     
     if (fallback === DEFAULT_CREST) {
-      // Replace with initial letter instead of loading another image
       img.style.display = 'none';
       if (img.parentElement) {
         img.parentElement.innerHTML = `<span class="text-lg font-bold text-muted-foreground">${alt.charAt(0)}</span>`;
@@ -74,7 +76,72 @@ function TeamLogo({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-export default function MatchCard({ match, onPredict }: MatchCardProps) {
+function PredictionBadge({ prediction, match }: { prediction: Prediction; match: Match }) {
+  const isFinished = match.status === 'FT';
+  
+  if (isFinished) {
+    const points = calculatePoints(prediction, match.homeScore, match.awayScore, match.status);
+    const isExact = points === 3;
+    const isCorrectWinner = points === 1;
+    
+    return (
+      <div className={`mt-3 rounded-lg border px-3 py-2 ${
+        isExact 
+          ? 'border-primary/30 bg-primary/10' 
+          : isCorrectWinner 
+            ? 'border-warning/30 bg-warning/10' 
+            : 'border-destructive/20 bg-destructive/5'
+      }`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            {isExact ? (
+              <Trophy className="h-3.5 w-3.5 text-primary" />
+            ) : isCorrectWinner ? (
+              <Check className="h-3.5 w-3.5 text-warning" />
+            ) : (
+              <X className="h-3.5 w-3.5 text-destructive" />
+            )}
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Your prediction
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className={`text-sm font-bold tabular-nums ${
+              isExact ? 'text-primary' : isCorrectWinner ? 'text-warning' : 'text-muted-foreground'
+            }`}>
+              {prediction.homeScore} – {prediction.awayScore}
+            </span>
+            <span className={`text-[10px] font-bold rounded-full px-1.5 py-0.5 ${
+              isExact 
+                ? 'bg-primary/20 text-primary' 
+                : isCorrectWinner 
+                  ? 'bg-warning/20 text-warning' 
+                  : 'bg-destructive/10 text-destructive'
+            }`}>
+              +{points}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // For NS / LIVE / HT — just show the prediction inline
+  return (
+    <div className="mt-3 rounded-lg border border-border/50 bg-secondary/30 px-3 py-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+          Your prediction
+        </span>
+        <span className="text-sm font-bold tabular-nums text-foreground">
+          {prediction.homeScore} – {prediction.awayScore}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export default function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
   const showScore = match.status !== 'NS';
   const isLive = match.status === 'LIVE';
   const canPredict = match.status === 'NS';
@@ -94,7 +161,7 @@ export default function MatchCard({ match, onPredict }: MatchCardProps) {
             className="rounded-full text-xs font-semibold h-7 px-3"
             onClick={() => onPredict(match)}
           >
-            PREDICT
+            {prediction ? 'EDIT' : 'PREDICT'}
           </Button>
         )}
       </div>
@@ -130,6 +197,9 @@ export default function MatchCard({ match, onPredict }: MatchCardProps) {
           <TeamLogo src={match.awayLogo} alt={match.awayTeam} />
         </div>
       </div>
+
+      {/* Prediction */}
+      {prediction && <PredictionBadge prediction={prediction} match={match} />}
     </div>
   );
 }
