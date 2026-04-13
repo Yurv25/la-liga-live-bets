@@ -104,6 +104,7 @@ export default function LiveMatches() {
               >
                 <MatchCard
                   match={match}
+                  prediction={predictionsMap.get(match.id)}
                   onPredict={(m) => {
                     if (!nickname) return;
                     setSelectedMatch(m);
@@ -117,7 +118,7 @@ export default function LiveMatches() {
 
       {/* Prediction Modal */}
       {selectedMatch && (
-        <PredictionModal match={selectedMatch} onClose={() => setSelectedMatch(null)} />
+        <PredictionModal match={selectedMatch} onClose={() => { setSelectedMatch(null); setPredictionVersion(v => v + 1); }} />
       )}
 
       {/* Nickname prompt */}
