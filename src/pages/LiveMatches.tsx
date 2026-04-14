@@ -10,6 +10,38 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 type Tab = 'all' | 'live' | 'upcoming';
 
+function getDayLabel(dateStr: string): string {
+  const date = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(date);
+  target.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Tomorrow';
+  return target.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+function groupMatchesByDay(matches: Match[]): { label: string; matches: Match[] }[] {
+  const sorted = [...matches].sort(
+    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+  );
+
+  const groups: { label: string; matches: Match[] }[] = [];
+  for (const match of sorted) {
+    const label = getDayLabel(match.startTime);
+    const existing = groups.find((g) => g.label === label);
+    if (existing) {
+      existing.matches.push(match);
+    } else {
+      groups.push({ label, matches: [match] });
+    }
+  }
+  return groups;
+}
+
 export default function LiveMatches() {
   const [tab, setTab] = useState<Tab>('all');
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
@@ -19,7 +51,6 @@ export default function LiveMatches() {
   const { matches: filteredMatches, loading, liveCount } = useFilteredMatches(tab);
 
   const predictionsMap = useMemo(() => {
-    // predictionVersion is used to trigger re-computation
     void predictionVersion;
     const predictions = getPredictions();
     const map = new Map<string, typeof predictions[0]>();
@@ -30,11 +61,34 @@ export default function LiveMatches() {
     return map;
   }, [predictionVersion, filteredMatches]);
 
+  const groupedMatches = useMemo(() => {
+    if (tab === 'upcoming') return groupMatchesByDay(filteredMatches);
+    return null;
+  }, [tab, filteredMatches]);
+
   const tabs: { key: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
     { key: 'all', label: 'All', icon: <Trophy className="h-4 w-4" /> },
     { key: 'live', label: 'Live', icon: <Zap className="h-4 w-4" />, count: liveCount },
     { key: 'upcoming', label: 'Upcoming', icon: <CalendarDays className="h-4 w-4" /> },
   ];
+
+  const renderMatchCard = (match: Match, i: number) => (
+    <motion.div
+      key={match.id}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: i * 0.05, duration: 0.3 }}
+    >
+      <MatchCard
+        match={match}
+        prediction={predictionsMap.get(match.id)}
+        onPredict={(m) => {
+          if (!nickname) return;
+          setSelectedMatch(m);
+        }}
+      />
+    </motion.div>
+  );
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -94,24 +148,19 @@ export default function LiveMatches() {
             >
               {tab === 'live' ? 'No live matches right now' : 'No matches found'}
             </motion.p>
-          ) : (
-            filteredMatches.map((match, i) => (
-              <motion.div
-                key={match.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05, duration: 0.3 }}
-              >
-                <MatchCard
-                  match={match}
-                  prediction={predictionsMap.get(match.id)}
-                  onPredict={(m) => {
-                    if (!nickname) return;
-                    setSelectedMatch(m);
-                  }}
-                />
-              </motion.div>
+          ) : groupedMatches ? (
+            // Grouped by day (upcoming tab)
+            groupedMatches.map((group) => (
+              <div key={group.label} className="space-y-3">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">
+                  {group.label}
+                </h3>
+                {group.matches.map((match, i) => renderMatchCard(match, i))}
+              </div>
             ))
+          ) : (
+            // Flat list (all / live tabs)
+            filteredMatches.map((match, i) => renderMatchCard(match, i))
           )}
         </AnimatePresence>
       </div>
