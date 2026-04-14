@@ -10,6 +10,19 @@ interface MatchStoreState {
   lastFetchTime: number;
 }
 
+/**
+ * === POLLING INTERVALS ===
+ * The store uses adaptive polling based on match state:
+ * - POLL_LIVE (20s): When there are live or half-time matches
+ * - POLL_UPCOMING_SOON (1min): When the next match starts within 30 minutes
+ * - POLL_UPCOMING (10min): Default for upcoming/finished matches
+ * 
+ * Polling starts when the first React component subscribes (via useMatches hook)
+ * and stops when the last component unsubscribes. See startPolling() and scheduleNext().
+ * 
+ * The actual API call happens in api.ts → fetchAllMatches(), which has its own
+ * smart retry logic to stop calling after repeated empty responses.
+ */
 const POLL_LIVE = 20_000;        // 20s for live matches
 const POLL_UPCOMING_SOON = 60_000; // 1min when next match within 30min
 const POLL_UPCOMING = 600_000;    // 10min for upcoming
