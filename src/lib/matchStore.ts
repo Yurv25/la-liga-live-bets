@@ -28,6 +28,10 @@ const POLL_UPCOMING_SOON = 60_000; // 1min when next match within 30min
 const POLL_UPCOMING = 600_000;    // 10min for upcoming
 const UPCOMING_SOON_THRESHOLD = 30 * 60 * 1000; // 30 minutes
 
+// Local tick to refresh simulated/mock match progression without hitting the API.
+// Keeps demo "live" matches advancing smoothly between real API polls.
+const SIM_TICK = 2_000; // 2s
+
 class MatchStore {
   private state: MatchStoreState = {
     matches: getMockMatches(),
@@ -37,6 +41,7 @@ class MatchStore {
 
   private listeners = new Set<Listener>();
   private timers: ReturnType<typeof setTimeout>[] = [];
+  private simTimer: ReturnType<typeof setInterval> | null = null;
   private refCount = 0;
 
   subscribe(listener: Listener): () => void {
@@ -45,6 +50,7 @@ class MatchStore {
 
     if (this.refCount === 1) {
       this.startPolling();
+      this.startSimTick();
     }
 
     return () => {
@@ -52,8 +58,27 @@ class MatchStore {
       this.refCount--;
       if (this.refCount === 0) {
         this.stopPolling();
+        this.stopSimTick();
       }
     };
+  }
+
+  // Refreshes mock-data-derived state (simulated live matches) on a fast cadence
+  // so demo "live" matches visibly progress between API polls.
+  private startSimTick() {
+    this.simTimer = setInterval(() => {
+      // Only tick when running on mock data (no real API data has overridden state).
+      if (this.state.lastFetchTime === 0) {
+        this.setState({ matches: getMockMatches() });
+      }
+    }, SIM_TICK);
+  }
+
+  private stopSimTick() {
+    if (this.simTimer) {
+      clearInterval(this.simTimer);
+      this.simTimer = null;
+    }
   }
 
   getSnapshot(): MatchStoreState {
