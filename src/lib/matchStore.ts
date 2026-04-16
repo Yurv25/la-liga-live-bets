@@ -41,6 +41,7 @@ class MatchStore {
 
   private listeners = new Set<Listener>();
   private timers: ReturnType<typeof setTimeout>[] = [];
+  private simTimer: ReturnType<typeof setInterval> | null = null;
   private refCount = 0;
 
   subscribe(listener: Listener): () => void {
@@ -49,6 +50,7 @@ class MatchStore {
 
     if (this.refCount === 1) {
       this.startPolling();
+      this.startSimTick();
     }
 
     return () => {
