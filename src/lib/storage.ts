@@ -1,8 +1,31 @@
 import { Prediction, Group, GroupMember } from './types';
+import { seedPredictions } from './matchData';
 
 const NICKNAME_KEY = 'gameon_nickname';
 const PREDICTIONS_KEY = 'gameon_predictions';
 const GROUPS_KEY = 'gameon_groups';
+const SEEDED_KEY = 'gameon_seeded_v1';
+
+// Seed demo predictions on first load so the app shows realistic data out of the box.
+// Bump the SEEDED_KEY suffix (v1 → v2) to re-seed after changing demo data.
+function seedDemoDataIfNeeded(): void {
+  if (typeof localStorage === 'undefined') return;
+  if (localStorage.getItem(SEEDED_KEY)) return;
+
+  const existing = localStorage.getItem(PREDICTIONS_KEY);
+  const predictions: Prediction[] = existing ? JSON.parse(existing) : [];
+  const now = Date.now();
+  for (const seed of seedPredictions) {
+    const dup = predictions.find(p => p.matchId === seed.matchId && p.nickname === seed.nickname);
+    if (!dup) {
+      predictions.push({ ...seed, timestamp: now });
+    }
+  }
+  localStorage.setItem(PREDICTIONS_KEY, JSON.stringify(predictions));
+  localStorage.setItem(SEEDED_KEY, '1');
+}
+
+seedDemoDataIfNeeded();
 
 export function getNickname(): string | null {
   return localStorage.getItem(NICKNAME_KEY);
