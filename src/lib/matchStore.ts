@@ -58,8 +58,27 @@ class MatchStore {
       this.refCount--;
       if (this.refCount === 0) {
         this.stopPolling();
+        this.stopSimTick();
       }
     };
+  }
+
+  // Refreshes mock-data-derived state (simulated live matches) on a fast cadence
+  // so demo "live" matches visibly progress between API polls.
+  private startSimTick() {
+    this.simTimer = setInterval(() => {
+      // Only tick when running on mock data (no real API data has overridden state).
+      if (this.state.lastFetchTime === 0) {
+        this.setState({ matches: getMockMatches() });
+      }
+    }, SIM_TICK);
+  }
+
+  private stopSimTick() {
+    if (this.simTimer) {
+      clearInterval(this.simTimer);
+      this.simTimer = null;
+    }
   }
 
   getSnapshot(): MatchStoreState {
