@@ -28,6 +28,10 @@ const POLL_UPCOMING_SOON = 60_000; // 1min when next match within 30min
 const POLL_UPCOMING = 600_000;    // 10min for upcoming
 const UPCOMING_SOON_THRESHOLD = 30 * 60 * 1000; // 30 minutes
 
+// Local tick to refresh simulated/mock match progression without hitting the API.
+// Keeps demo "live" matches advancing smoothly between real API polls.
+const SIM_TICK = 2_000; // 2s
+
 class MatchStore {
   private state: MatchStoreState = {
     matches: getMockMatches(),
