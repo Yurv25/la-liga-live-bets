@@ -4,6 +4,8 @@ import { getFallbackCrest, DEFAULT_CREST } from '@/lib/teamCrests';
 import { motion } from 'framer-motion';
 import { useCallback } from 'react';
 import { calculatePoints } from '@/lib/storage';
+import { isPredictionLocked } from '@/lib/predictionRules';
+import { Lock } from 'lucide-react';
 
 interface MatchCardProps {
   match: Match;
