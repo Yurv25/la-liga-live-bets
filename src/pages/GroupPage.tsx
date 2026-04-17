@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getGroupById, joinGroup, getNickname, getPredictions, calculatePoints } from '@/lib/storage';
-import { getMatches } from '@/lib/matchData';
-import { fetchAllMatches } from '@/lib/api';
+import { useFilteredMatches } from '@/hooks/useMatches';
 import { COMPETITIONS } from '@/lib/competitions';
-import { Group, Match } from '@/lib/types';
+import { Group, Match, Prediction } from '@/lib/types';
 import { ArrowLeft, Crown, CalendarDays, Trophy } from 'lucide-react';
 import NicknamePrompt from '@/components/NicknamePrompt';
 import MatchCard from '@/components/MatchCard';
