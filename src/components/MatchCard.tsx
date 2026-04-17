@@ -4,6 +4,8 @@ import { getFallbackCrest, DEFAULT_CREST } from '@/lib/teamCrests';
 import { motion } from 'framer-motion';
 import { useCallback } from 'react';
 import { calculatePoints } from '@/lib/storage';
+import { isPredictionLocked } from '@/lib/predictionRules';
+import { Lock } from 'lucide-react';
 
 interface MatchCardProps {
   match: Match;
@@ -106,7 +108,8 @@ function PredictionBadge({ prediction, match }: { prediction: Prediction; match:
 export default function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
   const showScore = match.status !== 'NS';
   const isLive = match.status === 'LIVE';
-  const canPredict = match.status === 'NS';
+  const locked = isPredictionLocked(match);
+  const canPredict = !locked;
 
   return (
     <div
@@ -117,7 +120,7 @@ export default function MatchCard({ match, prediction, onPredict }: MatchCardPro
       {/* Status */}
       <div className="flex items-center justify-between mb-3">
         <StatusBadge match={match} />
-        {canPredict && (
+        {canPredict ? (
           <Button
             size="sm"
             className="rounded-full text-xs font-semibold h-7 px-3"
@@ -125,7 +128,12 @@ export default function MatchCard({ match, prediction, onPredict }: MatchCardPro
           >
             {prediction ? 'EDIT' : 'PREDICT'}
           </Button>
-        )}
+        ) : match.status === 'NS' ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+            <Lock className="h-3 w-3" />
+            LOCKED
+          </span>
+        ) : null}
       </div>
 
       {/* Teams */}
