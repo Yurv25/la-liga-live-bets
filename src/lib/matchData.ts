@@ -113,11 +113,23 @@ const simulatedMatches: SimulatedMatch[] = [
 /**
  * Compute the current state of a simulated match based on elapsed real time.
  * Returns the Match with up-to-date status, minute, and score.
+ *
+ * LOOPING: Once a sim match finishes (FT), it stays "finished" for ~30s of real
+ * time so users can see the result, then auto-restarts. This guarantees the
+ * Live tab is never empty during demo/MVP usage.
  */
+const FT_HOLD_REAL_SEC = 30; // seconds to hold the FT screen before restarting
+
 function computeSimulatedMatch(sim: SimulatedMatch): Match {
   const now = Date.now();
-  const elapsedRealMs = now - new Date(sim.simStartTime).getTime();
-  const elapsedMatchMin = (elapsedRealMs / 1000) * sim.speedMultiplier / 60;
+  const startMs = new Date(sim.simStartTime).getTime();
+  // Total real-seconds for one full cycle: 90 match-min @ speedMultiplier + FT hold
+  const cycleRealSec = (90 * 60) / sim.speedMultiplier + FT_HOLD_REAL_SEC;
+  const cycleRealMs = cycleRealSec * 1000;
+
+  // Wrap into the current cycle so the match loops forever.
+  const elapsedInCycleMs = ((now - startMs) % cycleRealMs + cycleRealMs) % cycleRealMs;
+  const elapsedMatchMin = (elapsedInCycleMs / 1000) * sim.speedMultiplier / 60;
 
   let status: Match['status'];
   let minute: number | null;

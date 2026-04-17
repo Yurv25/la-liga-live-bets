@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getGroupById, joinGroup, getNickname, getPredictions, calculatePoints } from '@/lib/storage';
-import { getMatches } from '@/lib/matchData';
-import { fetchAllMatches } from '@/lib/api';
+import { useFilteredMatches } from '@/hooks/useMatches';
 import { COMPETITIONS } from '@/lib/competitions';
-import { Group, Match } from '@/lib/types';
+import { Group, Match, Prediction } from '@/lib/types';
 import { ArrowLeft, Crown, CalendarDays, Trophy } from 'lucide-react';
 import NicknamePrompt from '@/components/NicknamePrompt';
 import MatchCard from '@/components/MatchCard';
@@ -19,8 +18,11 @@ export default function GroupPage() {
   const [group, setGroup] = useState<Group | null>(null);
   const [nickname, setNickname2] = useState(getNickname());
   const [activeTab, setActiveTab] = useState<GroupTab>('leaderboard');
-  const [matches, setMatches] = useState<Match[]>(getMatches());
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+  const [predictionVersion, setPredictionVersion] = useState(0);
+
+  // Centralized match store (handles polling + sim ticks); single source of truth
+  const { allMatches: matches } = useFilteredMatches('all');
 
   useEffect(() => {
     if (!id) return;
@@ -33,20 +35,16 @@ export default function GroupPage() {
     }
   }, [id, nickname]);
 
-  const loadMatches = useCallback(async () => {
-    try {
-      const data = await fetchAllMatches();
-      if (data.length > 0) setMatches(data);
-    } catch {
-      // fallback
-    }
-  }, []);
-
-  useEffect(() => {
-    loadMatches();
-    const interval = setInterval(loadMatches, 30000);
-    return () => clearInterval(interval);
-  }, [loadMatches]);
+  // Map of current user's predictions, keyed by matchId, for fast lookup on cards
+  const predictionsMap = useMemo(() => {
+    void predictionVersion;
+    const map = new Map<string, Prediction>();
+    if (!nickname) return map;
+    getPredictions()
+      .filter(p => p.nickname === nickname)
+      .forEach(p => map.set(p.matchId, p));
+    return map;
+  }, [nickname, predictionVersion]);
 
   if (!group) {
     return (
@@ -158,6 +156,7 @@ export default function GroupPage() {
                 >
                   <MatchCard
                     match={match}
+                    prediction={predictionsMap.get(match.id)}
                     onPredict={(m) => {
                       if (!nickname) return;
                       setSelectedMatch(m);
@@ -171,7 +170,13 @@ export default function GroupPage() {
       </div>
 
       {selectedMatch && (
-        <PredictionModal match={selectedMatch} onClose={() => setSelectedMatch(null)} />
+        <PredictionModal
+          match={selectedMatch}
+          onClose={() => {
+            setSelectedMatch(null);
+            setPredictionVersion(v => v + 1);
+          }}
+        />
       )}
 
       {!nickname && <NicknamePrompt onSet={(n) => setNickname2(n)} />}
