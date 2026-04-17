@@ -18,8 +18,11 @@ export default function GroupPage() {
   const [group, setGroup] = useState<Group | null>(null);
   const [nickname, setNickname2] = useState(getNickname());
   const [activeTab, setActiveTab] = useState<GroupTab>('leaderboard');
-  const [matches, setMatches] = useState<Match[]>(getMatches());
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+  const [predictionVersion, setPredictionVersion] = useState(0);
+
+  // Centralized match store (handles polling + sim ticks); single source of truth
+  const { allMatches: matches } = useFilteredMatches('all');
 
   useEffect(() => {
     if (!id) return;
@@ -32,20 +35,16 @@ export default function GroupPage() {
     }
   }, [id, nickname]);
 
-  const loadMatches = useCallback(async () => {
-    try {
-      const data = await fetchAllMatches();
-      if (data.length > 0) setMatches(data);
-    } catch {
-      // fallback
-    }
-  }, []);
-
-  useEffect(() => {
-    loadMatches();
-    const interval = setInterval(loadMatches, 30000);
-    return () => clearInterval(interval);
-  }, [loadMatches]);
+  // Map of current user's predictions, keyed by matchId, for fast lookup on cards
+  const predictionsMap = useMemo(() => {
+    void predictionVersion;
+    const map = new Map<string, Prediction>();
+    if (!nickname) return map;
+    getPredictions()
+      .filter(p => p.nickname === nickname)
+      .forEach(p => map.set(p.matchId, p));
+    return map;
+  }, [nickname, predictionVersion]);
 
   if (!group) {
     return (
