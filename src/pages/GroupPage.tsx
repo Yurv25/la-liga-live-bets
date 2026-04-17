@@ -156,6 +156,7 @@ export default function GroupPage() {
                 >
                   <MatchCard
                     match={match}
+                    prediction={predictionsMap.get(match.id)}
                     onPredict={(m) => {
                       if (!nickname) return;
                       setSelectedMatch(m);
@@ -169,7 +170,13 @@ export default function GroupPage() {
       </div>
 
       {selectedMatch && (
-        <PredictionModal match={selectedMatch} onClose={() => setSelectedMatch(null)} />
+        <PredictionModal
+          match={selectedMatch}
+          onClose={() => {
+            setSelectedMatch(null);
+            setPredictionVersion(v => v + 1);
+          }}
+        />
       )}
 
       {!nickname && <NicknamePrompt onSet={(n) => setNickname2(n)} />}
