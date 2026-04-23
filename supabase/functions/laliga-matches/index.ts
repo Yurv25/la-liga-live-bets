@@ -1,4 +1,4 @@
-//import "https://deno.land/std@0.168.0/dotenv/load.ts";
+import "https://deno.land/std@0.168.0/dotenv/load.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
