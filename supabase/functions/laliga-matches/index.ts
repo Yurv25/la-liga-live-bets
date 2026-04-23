@@ -11,11 +11,33 @@ const LA_LIGA_ID = 3;
 
 function normalizeStatus(status: string): "LIVE" | "HT" | "FT" | "NS" {
   const s = status.toLowerCase();
+  switch (s) {
+    case "inprogress":
+    case "1st_half":
+    case "2nd_half":
+      return "LIVE";
+
+    case "halftime":
+      return "HT";
+
+    case "finished":
+      return "FT";
+
+    case "notstarted":
+    case "postponed":
+    case "cancelled":
+      return "NS";
+
+    default:
+      return "NS";
+  }
+  /*
   if (s === "inprogress" || s === "live" || s === "in progress") return "LIVE";
   if (s === "halftime" || s === "ht" || s === "half time") return "HT";
   if (s === "finished" || s === "ft" || s === "ended") return "FT";
   if (s === "notstarted" || s === "ns" || s === "not started") return "NS";
-  return "NS";
+  */
+  //return "NS";
 }
 
 function teamLogoUrl(teamId?: number): string {
@@ -82,12 +104,15 @@ Deno.serve(async (req) => {
 
     const events = eventsData.results || eventsData;
     const liveMatches = ((liveData.results || liveData) as any[]).filter(
-      (m: any) => m.league?.name === "La Liga"
+      (m: any) => m.league?.name?.toLowerCase().includes("liga") //m.league?.name === "La Liga"
     );
-
+    console.log("LIVE MATCHES RAW:", liveMatches);
     const mappedEvents = events.map((ev: any) => mapMatch(ev));
     const mappedLive = liveMatches.map((m: any) => mapMatch(m, new Date().toISOString()));
 
+    console.log("EVENT IDS:", mappedEvents.map(m => m.id));
+    console.log("LIVE IDS:", mappedLive.map(m => m.id));
+    
     // Merge live data over events
     const liveMap = new Map(mappedLive.map((m: any) => [m.id, m]));
     const merged = mappedEvents.map((ev: any) => liveMap.get(ev.id) || ev);
