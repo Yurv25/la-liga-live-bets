@@ -1,4 +1,4 @@
-import "https://deno.land/std@0.168.0/dotenv/load.ts";
+//import "https://deno.land/std@0.168.0/dotenv/load.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -81,6 +81,7 @@ Deno.serve(async (req) => {
   }
 
   const apiKey = Deno.env.get("BZZOIRO_API_KEY");
+  console.log("my env var:", apiKey ? "exists" : "missing");
   if (!apiKey) {
     return new Response(
       JSON.stringify({ error: "BZZOIRO_API_KEY not configured" }),
@@ -112,7 +113,7 @@ Deno.serve(async (req) => {
 
     console.log("EVENT IDS:", mappedEvents.map(m => m.id));
     console.log("LIVE IDS:", mappedLive.map(m => m.id));
-    
+
     // Merge live data over events
     const liveMap = new Map(mappedLive.map((m: any) => [m.id, m]));
     const merged = mappedEvents.map((ev: any) => liveMap.get(ev.id) || ev);
