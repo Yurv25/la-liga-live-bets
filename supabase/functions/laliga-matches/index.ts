@@ -112,10 +112,10 @@ Deno.serve(async (req) => {
       }
     });
 
-    /*return new Response(JSON.stringify(merged), {
+    return new Response(JSON.stringify(merged), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });*/
-    return new Response(
+    });
+    /*return new Response(
       JSON.stringify({
       debug: {
         apiKeyExists: !!apiKey,
@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
       {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
-    );
+    );*/
   } catch (err) {
     console.error("Bzzoiro API error:", err);
     return new Response(
