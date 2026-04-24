@@ -90,6 +90,15 @@ export async function fetchAllMatches(): Promise<Match[]> {
     // Success! API returned real match data — reset the empty counter
     consecutiveEmpties = 0;
     console.log(`[API] Fetched ${data.length} matches successfully`);
+
+    // Fix status based on minute — API sometimes returns NS for live matches
+    const fixedMatches = data.map((m: any) => {
+    if (m.status === 'NS' && m.minute !== null && m.minute > 0) {
+      return { ...m, status: 'LIVE' };
+    }
+      return m;
+    });
+
     return data as Match[];
 
   } catch (err) {
