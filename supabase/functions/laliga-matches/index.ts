@@ -10,12 +10,11 @@ const BASE_URL = "https://sports.bzzoiro.com/api";
 const LA_LIGA_ID = 3;
 
 function normalizeStatus(status: string): "LIVE" | "HT" | "FT" | "NS" {
-  const s = status.toLowerCase();
+  const s = status.toLowerCase().replace(/[\s_-]/g, '');
   
-  if (["inprogress", "1st_half", "2nd_half"].includes(s)) return "LIVE";
-  if (s === "halftime") return "HT";
-  if (s === "finished") return "FT";
-  if (["notstarted", "postponed", "cancelled"].includes(s)) return "NS";
+  if (["inprogress", "1sthalf", "2ndhalf", "live", "inplay"].includes(s)) return "LIVE";
+  if (["halftime", "ht"].includes(s)) return "HT";
+  if (["finished", "ft", "ended", "complete", "completed"].includes(s)) return "FT";
   
   return "NS"; // default to NS for unknown statuses
   /*
