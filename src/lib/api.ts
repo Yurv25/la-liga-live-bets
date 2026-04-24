@@ -50,6 +50,7 @@ export async function fetchAllMatches(): Promise<Match[]> {
     // The edge function proxies to the Bzzoiro sports API and merges live + scheduled data
     const { data, error } = await supabase.functions.invoke('laliga-matches');
     //console.log("BACKEND RESPONSE:", data);
+    console.log("FULL RESPONSE:", JSON.stringify(data));
     console.log("RAW STATUSES:", data?.debug?.rawStatuses);
     const matches = Array.isArray(data) ? data : data?.data;
     if (error) {
