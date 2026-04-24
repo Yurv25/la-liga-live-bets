@@ -112,9 +112,20 @@ Deno.serve(async (req) => {
       }
     });
 
-    return new Response(JSON.stringify(merged), {
+    /*return new Response(JSON.stringify(merged), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    });*/
+    return new Response(
+  JSON.stringify({
+    debug: {
+      rawStatuses: [...events.map((ev: any) => ev.status), ...liveMatches.map((m: any) => m.status)]
+    },
+    data: merged,
+  }),
+  {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  }
+);
     /*return new Response(
       JSON.stringify({
       debug: {

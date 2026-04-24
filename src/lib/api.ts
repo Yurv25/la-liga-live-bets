@@ -49,8 +49,9 @@ export async function fetchAllMatches(): Promise<Match[]> {
     // This calls the Supabase edge function: supabase/functions/laliga-matches/index.ts
     // The edge function proxies to the Bzzoiro sports API and merges live + scheduled data
     const { data, error } = await supabase.functions.invoke('laliga-matches');
-    console.log("BACKEND RESPONSE:", data);
-    
+    //console.log("BACKEND RESPONSE:", data);
+    console.log("RAW STATUSES:", data?.debug?.rawStatuses);
+    const matches = Array.isArray(data) ? data : data?.data;
     if (error) {
       console.error('[API] Edge function error:', error);
       consecutiveEmpties++;
