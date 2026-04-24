@@ -92,9 +92,12 @@ Deno.serve(async (req) => {
 
     const events = eventsData.results || eventsData;
     const liveMatches = ((liveData.results || liveData) as any[]).filter(
-      (m: any) => m.league?.id === LA_LIGA_ID //m.league?.name === "La Liga"
+      (m: any) => 
+        m.league?.id === LA_LIGA_ID || //m.league?.name === "La Liga"
+        m.league?.name?.toLowerCase().includes("la liga")
     );
-    console.log("LIVE MATCHES RAW:", liveMatches);
+    //console.log("SAMPLE LIVE MATCH:", liveData.results?.[0]);
+    //console.log("LIVE MATCHES RAW:", liveMatches);
     const mappedEvents = events.map((ev: any) => mapMatch(ev));
     const mappedLive = liveMatches.map((m: any) => mapMatch(m, new Date().toISOString()));
 
@@ -120,6 +123,7 @@ Deno.serve(async (req) => {
         sampleStatuses: mappedEvents.slice(0, 3).map(m => m.status),
         eventIds: mappedEvents.slice(0, 3).map(m => m.id),
         liveIds: mappedLive.slice(0, 3).map(m => m.id),
+        rawLiveSample: (liveData.results || liveData)?.slice(0, 2),
       },
       data: merged,
       }),
