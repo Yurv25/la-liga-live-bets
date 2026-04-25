@@ -112,35 +112,9 @@ Deno.serve(async (req) => {
       }
     });
 
-    /*return new Response(JSON.stringify(merged), {
+    return new Response(JSON.stringify(merged), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });*/
-    return new Response(
-  JSON.stringify({
-    debug: {
-      rawStatuses: [...events.map((ev: any) => ev.status), ...liveMatches.map((m: any) => m.status)]
-    },
-    data: merged,
-  }),
-  {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  }
-);
-    /*return new Response(
-      JSON.stringify({
-      debug: {
-        apiKeyExists: !!apiKey,
-        sampleStatuses: mappedEvents.slice(0, 3).map(m => m.status),
-        eventIds: mappedEvents.slice(0, 3).map(m => m.id),
-        liveIds: mappedLive.slice(0, 3).map(m => m.id),
-        rawLiveSample: (liveData.results || liveData)?.slice(0, 2),
-      },
-      data: merged,
-      }),
-      {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );*/
+    });
   } catch (err) {
     console.error("Bzzoiro API error:", err);
     return new Response(
