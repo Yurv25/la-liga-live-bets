@@ -10,7 +10,13 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:link": "supabase link --project-ref lpvraykohdjkfiozsbde",
+    "functions:serve": "supabase functions serve laliga-matches --env-file ./supabase/.env",
+    "functions:deploy": "supabase functions deploy laliga-matches --project-ref lpvraykohdjkfiozsbde",
+    "secrets:set": "supabase secrets set --env-file ./supabase/.env --project-ref lpvraykohdjkfiozsbde"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
