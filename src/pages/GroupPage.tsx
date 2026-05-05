@@ -55,7 +55,36 @@ export default function GroupPage() {
   }
 
   const competition = COMPETITIONS.find((c) => c.id === group.competitionId);
-  const upcomingMatches = matches.filter((m) => m.status === 'NS');
+
+  const predictedMatches = matches
+    .filter((m) => predictionsMap.has(m.id))
+    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+
+  const unpredictedUpcoming = matches
+    .filter((m) => m.status === 'NS' && !predictionsMap.has(m.id))
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+
+  const upcomingByDay = (() => {
+    const groups: { label: string; matches: Match[] }[] = [];
+    for (const match of unpredictedUpcoming) {
+      const d = new Date(match.startTime);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const target = new Date(d);
+      target.setHours(0, 0, 0, 0);
+      const diffDays = Math.round((target.getTime() - today.getTime()) / 86400000);
+      const label =
+        diffDays === 0
+          ? 'Today'
+          : diffDays === 1
+          ? 'Tomorrow'
+          : target.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+      const existing = groups.find((g) => g.label === label);
+      if (existing) existing.matches.push(match);
+      else groups.push({ label, matches: [match] });
+    }
+    return groups;
+  })();
 
   const leaderboard = group.members
     .map((member) => {
@@ -143,27 +172,68 @@ export default function GroupPage() {
         )}
 
         {activeTab === 'matches' && (
-          <div className="space-y-3">
-            {upcomingMatches.length === 0 ? (
-              <p className="text-center text-muted-foreground py-12 text-sm">No upcoming matches</p>
+          <div className="space-y-6">
+            {predictedMatches.length === 0 && unpredictedUpcoming.length === 0 ? (
+              <p className="text-center text-muted-foreground py-12 text-sm">No matches yet</p>
             ) : (
-              upcomingMatches.map((match, i) => (
-                <motion.div
-                  key={match.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                >
-                  <MatchCard
-                    match={match}
-                    prediction={predictionsMap.get(match.id)}
-                    onPredict={(m) => {
-                      if (!nickname) return;
-                      setSelectedMatch(m);
-                    }}
-                  />
-                </motion.div>
-              ))
+              <>
+                {predictedMatches.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">
+                      Your predictions
+                    </h3>
+                    {predictedMatches.map((match, i) => (
+                      <motion.div
+                        key={match.id}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                      >
+                        <MatchCard
+                          match={match}
+                          prediction={predictionsMap.get(match.id)}
+                          onPredict={(m) => {
+                            if (!nickname) return;
+                            setSelectedMatch(m);
+                          }}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+
+                {unpredictedUpcoming.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">
+                      Upcoming to predict
+                    </h3>
+                    {upcomingByDay.map((group) => (
+                      <div key={group.label} className="space-y-3">
+                        <h4 className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wider">
+                          {group.label}
+                        </h4>
+                        {group.matches.map((match, i) => (
+                          <motion.div
+                            key={match.id}
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.05 }}
+                          >
+                            <MatchCard
+                              match={match}
+                              prediction={predictionsMap.get(match.id)}
+                              onPredict={(m) => {
+                                if (!nickname) return;
+                                setSelectedMatch(m);
+                              }}
+                            />
+                          </motion.div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
