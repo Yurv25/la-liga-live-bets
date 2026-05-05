@@ -55,7 +55,36 @@ export default function GroupPage() {
   }
 
   const competition = COMPETITIONS.find((c) => c.id === group.competitionId);
-  const upcomingMatches = matches.filter((m) => m.status === 'NS');
+
+  const predictedMatches = matches
+    .filter((m) => predictionsMap.has(m.id))
+    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+
+  const unpredictedUpcoming = matches
+    .filter((m) => m.status === 'NS' && !predictionsMap.has(m.id))
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+
+  const upcomingByDay = (() => {
+    const groups: { label: string; matches: Match[] }[] = [];
+    for (const match of unpredictedUpcoming) {
+      const d = new Date(match.startTime);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const target = new Date(d);
+      target.setHours(0, 0, 0, 0);
+      const diffDays = Math.round((target.getTime() - today.getTime()) / 86400000);
+      const label =
+        diffDays === 0
+          ? 'Today'
+          : diffDays === 1
+          ? 'Tomorrow'
+          : target.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+      const existing = groups.find((g) => g.label === label);
+      if (existing) existing.matches.push(match);
+      else groups.push({ label, matches: [match] });
+    }
+    return groups;
+  })();
 
   const leaderboard = group.members
     .map((member) => {
