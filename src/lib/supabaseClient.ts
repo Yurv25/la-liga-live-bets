@@ -27,4 +27,10 @@ export const supabase = createClient(url, anonKey, {
     persistSession: true,
     autoRefreshToken: true,
   },
+  global: {
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
+    },
+  },
 });
