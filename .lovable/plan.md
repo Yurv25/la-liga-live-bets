@@ -1,32 +1,71 @@
-# Show all predicted + upcoming matches in group
+# Migrate to Bzzoiro API v2
 
-## Problem
+## Goals
 
-- The main feed (`/`) already shows all La Liga matches in **All** and all upcoming in **Upcoming** — that part works.
-- Inside a group (`/group/:id`), the **Matches** tab currently only shows fixtures with status `NS` (not started). Matches the user already predicted that are now LIVE/HT/FT disappear, so there is no way to review past predictions or see all relevant games in one place.
+1. Edge function moves from `/api/events/?league=3` + `/api/live/` to v2 (`/api/v2/events/?league_id=3` + `/api/v2/events/live/?league_id=3`).
+2. Return the full La Liga season (past finished + upcoming) so the app can show every fixture.
+3. Group **Matches** tab: scrolling shows previous fixtures (FT) AND future fixtures, not just NS / predicted.
+4. Main **Upcoming** tab: every future fixture of the season.
 
-## Goal
+## Edge function: `supabase/functions/laliga-matches/index.ts`
 
-In the group's **Matches** tab, show every match that is relevant to the user, split into two clear sections:
+### Endpoint changes
+- Base path: `${BASE_URL}/v2/events/` (BASE_URL = `https://sports.bzzoiro.com/api`).
+- Query param: `league_id=3` (was `league=3`).
+- Live endpoint: `${BASE_URL}/v2/events/live/?league_id=3`. Response shape is `{ count, events: [...] }` (key is `events`, NOT `results`). Drop the manual `m.league?.id === LA_LIGA_ID` check — v2 filters server-side.
 
-1. **Your predictions** — every match the current user has already predicted (any status: LIVE, HT, FT, NS), most recent first by kickoff time.
-2. **Upcoming to predict** — remaining `NS` matches the user has not predicted yet, grouped by day (Today / Tomorrow / weekday) like the main Upcoming feed.
+### Pagination (events list)
+v2 paginates with `limit` (default 50, max 200) + `offset`, returning `{ count, next, previous, results }`.
+- Fetch page 1 with `limit=200`, read `count`, fan out remaining pages in parallel via `Promise.all` using computed offsets.
+- Hard cap (e.g. 20 pages = 4000) as a safety net.
 
-No changes to the main `/` page, no changes to scoring, no changes to the edge function.
+### v2 status / period vocabulary (apply to BOTH endpoints)
+Per docs (live endpoint, but identical fields on detail/list):
+- `status`: `notstarted` | `inprogress` | `penalties` | `finished`
+- `period`: `1st_half` | `halftime` | `2nd_half` | `extra_time` | `FT` | `null` (null when status is `notstarted` or `penalties`)
+- `current_minute`: int or null (non-null only for `inprogress` and `penalties`)
+- `home_score_ht` / `away_score_ht`: int or null
+- `event_date`: ISO-8601 UTC with `Z` suffix
+- `last_updated`: ISO-8601 UTC with `Z` suffix (live endpoint only)
+- `live_websocket`: bool (ignored for now)
 
-## Changes
+Mapping to our internal `Match.status` (`'LIVE' | 'HT' | 'FT' | 'NS'`):
+- `period === 'halftime'` → **HT** (check period FIRST so HT wins over inprogress)
+- `status === 'inprogress'` or `status === 'penalties'` → **LIVE**
+- `status === 'finished'` → **FT**
+- `status === 'notstarted'` → **NS**
+- anything else → **NS** (defensive default)
 
-### `src/pages/GroupPage.tsx` (only file touched)
+### Field mapping (`mapMatch`)
+Read v2 fields directly:
+- `id` → `String(ev.id)`
+- `homeTeam` ← `ev.home_team`, `awayTeam` ← `ev.away_team`
+- `homeTeamId` ← `ev.home_team_id`, `awayTeamId` ← `ev.away_team_id`
+- `homeScore` ← `ev.home_score ?? 0`, `awayScore` ← `ev.away_score ?? 0`
+- `status` ← normalized via the rules above (use `ev.period` and `ev.status`)
+- `minute` ← `ev.current_minute ?? null`
+- `startTime` ← `ev.event_date`
+- `homeLogo` / `awayLogo` ← unchanged `teamLogoUrl(teamId)` (crests untouched)
 
-- Replace the single `upcomingMatches` list in the Matches tab with two derived lists from `matches` (already coming from the centralized store):
-  - `predictedMatches` = matches whose `id` is in `predictionsMap`, sorted by `startTime` desc.
-  - `unpredictedUpcoming` = `status === 'NS'` AND not in `predictionsMap`, sorted by `startTime` asc.
-- Render two sections with small headers ("Your predictions", "Upcoming to predict"). Reuse existing `MatchCard` + `PredictionModal` (the modal already locks editing once status leaves `NS`, so no UX regression).
-- Group the "Upcoming to predict" list by day using the same `getDayLabel` / `groupMatchesByDay` pattern as `LiveMatches.tsx` (small local helpers, no shared util needed).
-- Empty states:
-  - If both lists are empty: keep current "No upcoming matches" message, reworded to "No matches yet".
-  - If only one is empty: hide that section's header.
+### Merge live + scheduled
+Same pattern as today: `Map` keyed by id from live `events`, override scheduled rows. No client-side league filter.
+
+## Frontend
+
+### `src/pages/GroupPage.tsx`
+Add a third bucket so scrolling reveals past results too. Render order:
+1. **Upcoming to predict** — `status === 'NS'` and not in `predictionsMap`, grouped by day, soonest first.
+2. **Your predictions** — any status, in `predictionsMap`, sorted by `startTime` desc.
+3. **Past results** — `status === 'FT'` and NOT in `predictionsMap`, grouped by day, newest first.
+
+Empty state shows only when all three lists are empty. Section headers hidden when their list is empty. No scoring/locking changes — `MatchCard` + `PredictionModal` already handle non-NS correctly.
+
+### Main `Upcoming` tab
+No code change needed. Once the edge function returns the full season, the existing `status === 'NS'` filter naturally surfaces every future fixture. Verify nothing slices/limits the list; remove cap if found.
+
+## Files touched
+- `supabase/functions/laliga-matches/index.ts` — v2 endpoints, pagination, new status/period mapping, drop live league filter.
+- `src/pages/GroupPage.tsx` — add Past results section.
 
 ## Out of scope
-
-- Edge function logic, polling, scoring, leaderboard, styling system, auth, mock data fallback — all untouched.
+- Crests/logos, polling cadence, scoring, leaderboard, mock data fallback, auth, design tokens, other leagues.
