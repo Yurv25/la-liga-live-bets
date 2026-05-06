@@ -8,42 +8,35 @@ const corsHeaders = {
 
 const BASE_URL = "https://sports.bzzoiro.com/api";
 const LA_LIGA_ID = 3;
+const PAGE_SIZE = 200;
+const MAX_PAGES = 20; // safety cap (4000 matches)
 
-function normalizeStatus(status: string): "LIVE" | "HT" | "FT" | "NS" {
-  const s = status.toLowerCase().replace(/[\s_-]/g, '');
-  
-  if (["inprogress", "1sthalf", "2ndhalf", "live", "inplay"].includes(s)) return "LIVE";
-  if (["halftime", "ht"].includes(s)) return "HT";
-  if (["finished", "ft", "ended", "complete", "completed"].includes(s)) return "FT";
-  
-  return "NS"; // default to NS for unknown statuses
-  /*
-  if (s === "inprogress" || s === "live" || s === "in progress") return "LIVE";
-  if (s === "halftime" || s === "ht" || s === "half time") return "HT";
-  if (s === "finished" || s === "ft" || s === "ended") return "FT";
-  if (s === "notstarted" || s === "ns" || s === "not started") return "NS";
-  */
-  //return "NS";
+function normalizeStatus(
+  status: string | undefined,
+  period: string | null | undefined
+): "LIVE" | "HT" | "FT" | "NS" {
+  if (period === "halftime") return "HT";
+  switch (status) {
+    case "inprogress":
+    case "penalties":
+      return "LIVE";
+    case "finished":
+      return "FT";
+    case "notstarted":
+      return "NS";
+    default:
+      return "NS";
+  }
 }
 
-function teamLogoUrl(teamId?: number): string {
+function teamLogoUrl(teamId?: number | null): string {
   if (!teamId) return "";
   return `https://sports.bzzoiro.com/img/team/${teamId}/`;
 }
 
-function extractTeamApiId(ev: any, side: "home" | "away"): number | null {
-  // Use api_id (not id) — api_id is what the /img/team/{api_id}/ endpoint expects
-  const obj = ev[`${side}_team_obj`];
-  if (obj?.api_id) return obj.api_id;
-  if (obj?.id) return obj.id; // fallback to internal id if api_id missing
-  const directId = ev[`${side}_team_id`];
-  if (directId) return directId;
-  return null;
-}
-
-function mapMatch(ev: any, fallbackStartTime?: string) {
-  const homeTeamId = extractTeamApiId(ev, "home");
-  const awayTeamId = extractTeamApiId(ev, "away");
+function mapMatch(ev: any) {
+  const homeTeamId = ev.home_team_id ?? null;
+  const awayTeamId = ev.away_team_id ?? null;
 
   return {
     id: String(ev.id),
@@ -51,13 +44,13 @@ function mapMatch(ev: any, fallbackStartTime?: string) {
     awayTeam: ev.away_team,
     homeScore: ev.home_score ?? 0,
     awayScore: ev.away_score ?? 0,
-    status: normalizeStatus(ev.status),
-    minute: ev.current_minute ?? ev.minute ?? null,
-    startTime: ev.event_date ?? fallbackStartTime ?? new Date().toISOString(),
-    homeTeamId: homeTeamId,
-    awayTeamId: awayTeamId,
-    homeLogo: teamLogoUrl(homeTeamId ?? undefined),
-    awayLogo: teamLogoUrl(awayTeamId ?? undefined),
+    status: normalizeStatus(ev.status, ev.period),
+    minute: ev.current_minute ?? null,
+    startTime: ev.event_date ?? new Date().toISOString(),
+    homeTeamId,
+    awayTeamId,
+    homeLogo: teamLogoUrl(homeTeamId),
+    awayLogo: teamLogoUrl(awayTeamId),
   };
 }
 
@@ -67,7 +60,6 @@ Deno.serve(async (req) => {
   }
 
   const apiKey = Deno.env.get("BZZOIRO_API_KEY");
-  console.log("my env var:", apiKey ? "exists" : "missing");
   if (!apiKey) {
     return new Response(
       JSON.stringify({ error: "BZZOIRO_API_KEY not configured" }),
@@ -78,45 +70,67 @@ Deno.serve(async (req) => {
   const headers = { Authorization: `Token ${apiKey}` };
 
   try {
-    const [eventsRes, liveRes] = await Promise.all([
-      fetch(`${BASE_URL}/events/?league=${LA_LIGA_ID}`, { headers }),
-      fetch(`${BASE_URL}/live/`, { headers }),
+    // Fetch first page + live in parallel
+    const [firstPageRes, liveRes] = await Promise.all([
+      fetch(
+        `${BASE_URL}/v2/events/?league_id=${LA_LIGA_ID}&limit=${PAGE_SIZE}&offset=0`,
+        { headers }
+      ),
+      fetch(`${BASE_URL}/v2/events/live/?league_id=${LA_LIGA_ID}`, { headers }),
     ]);
 
-    if (!eventsRes.ok) throw new Error(`Events API: ${eventsRes.status}`);
+    if (!firstPageRes.ok) throw new Error(`Events API: ${firstPageRes.status}`);
     if (!liveRes.ok) throw new Error(`Live API: ${liveRes.status}`);
 
-    const eventsData = await eventsRes.json();
+    const firstPage = await firstPageRes.json();
     const liveData = await liveRes.json();
 
-    const events = eventsData.results || eventsData;
-    const liveMatches = ((liveData.results || liveData) as any[]).filter(
-      (m: any) => 
-        m.league?.id === LA_LIGA_ID || //m.league?.name === "La Liga"
-        m.league?.name?.toLowerCase().includes("la liga")
+    const totalCount: number = firstPage.count ?? 0;
+    const allResults: any[] = [...(firstPage.results ?? [])];
+
+    // Fan out remaining pages in parallel
+    const totalPages = Math.min(
+      MAX_PAGES,
+      Math.ceil(totalCount / PAGE_SIZE)
     );
-    //console.log("SAMPLE LIVE MATCH:", liveData.results?.[0]);
-    //console.log("LIVE MATCHES RAW:", liveMatches);
-    const mappedEvents = events.map((ev: any) => mapMatch(ev));
-    const mappedLive = liveMatches.map((m: any) => mapMatch(m, new Date().toISOString()));
 
-    console.log("EVENT IDS:", mappedEvents.map(m => m.id));
-    console.log("LIVE IDS:", mappedLive.map(m => m.id));
+    if (totalPages > 1) {
+      const offsets: number[] = [];
+      for (let p = 1; p < totalPages; p++) offsets.push(p * PAGE_SIZE);
+      const pages = await Promise.all(
+        offsets.map((offset) =>
+          fetch(
+            `${BASE_URL}/v2/events/?league_id=${LA_LIGA_ID}&limit=${PAGE_SIZE}&offset=${offset}`,
+            { headers }
+          ).then((r) => (r.ok ? r.json() : { results: [] }))
+        )
+      );
+      for (const pg of pages) {
+        if (Array.isArray(pg.results)) allResults.push(...pg.results);
+      }
+    }
 
-    // Merge live data over events
+    const liveEvents: any[] = liveData.events ?? [];
+
+    const mappedEvents = allResults.map((ev: any) => mapMatch(ev));
+    const mappedLive = liveEvents.map((m: any) => mapMatch(m));
+
+    // Merge: live overrides scheduled by id
     const liveMap = new Map(mappedLive.map((m: any) => [m.id, m]));
     const merged = mappedEvents.map((ev: any) => liveMap.get(ev.id) || ev);
     mappedLive.forEach((m: any) => {
-      if (!mappedEvents.find((ev: any) => ev.id === m.id)) {
-        merged.push(m);
-      }
+      if (!mappedEvents.find((ev: any) => ev.id === m.id)) merged.push(m);
     });
+
+    console.log(
+      `[laliga-matches] total=${totalCount} fetched=${allResults.length} live=${liveEvents.length} merged=${merged.length}`
+    );
 
     return new Response(JSON.stringify(merged), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("Bzzoiro API error:", err);
+    console.error("Bzzoiro v2 API error:", err);
     return new Response(
       JSON.stringify({ error: "Failed to fetch match data", matches: [] }),
       { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
