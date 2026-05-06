@@ -64,13 +64,16 @@ export default function GroupPage() {
     .filter((m) => m.status === 'NS' && !predictionsMap.has(m.id))
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 
-  const upcomingByDay = (() => {
+  const pastResults = matches
+    .filter((m) => m.status === 'FT' && !predictionsMap.has(m.id))
+    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+
+  const groupByDay = (list: Match[]) => {
     const groups: { label: string; matches: Match[] }[] = [];
-    for (const match of unpredictedUpcoming) {
-      const d = new Date(match.startTime);
+    for (const match of list) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const target = new Date(d);
+      const target = new Date(match.startTime);
       target.setHours(0, 0, 0, 0);
       const diffDays = Math.round((target.getTime() - today.getTime()) / 86400000);
       const label =
@@ -78,13 +81,18 @@ export default function GroupPage() {
           ? 'Today'
           : diffDays === 1
           ? 'Tomorrow'
+          : diffDays === -1
+          ? 'Yesterday'
           : target.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
       const existing = groups.find((g) => g.label === label);
       if (existing) existing.matches.push(match);
       else groups.push({ label, matches: [match] });
     }
     return groups;
-  })();
+  };
+
+  const upcomingByDay = groupByDay(unpredictedUpcoming);
+  const pastByDay = groupByDay(pastResults);
 
   const leaderboard = group.members
     .map((member) => {
