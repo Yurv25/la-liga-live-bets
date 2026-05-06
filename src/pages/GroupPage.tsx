@@ -181,10 +181,42 @@ export default function GroupPage() {
 
         {activeTab === 'matches' && (
           <div className="space-y-6">
-            {predictedMatches.length === 0 && unpredictedUpcoming.length === 0 ? (
+            {predictedMatches.length === 0 && unpredictedUpcoming.length === 0 && pastResults.length === 0 ? (
               <p className="text-center text-muted-foreground py-12 text-sm">No matches yet</p>
             ) : (
               <>
+                {unpredictedUpcoming.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">
+                      Upcoming to predict
+                    </h3>
+                    {upcomingByDay.map((group) => (
+                      <div key={group.label} className="space-y-3">
+                        <h4 className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wider">
+                          {group.label}
+                        </h4>
+                        {group.matches.map((match, i) => (
+                          <motion.div
+                            key={match.id}
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.05 }}
+                          >
+                            <MatchCard
+                              match={match}
+                              prediction={predictionsMap.get(match.id)}
+                              onPredict={(m) => {
+                                if (!nickname) return;
+                                setSelectedMatch(m);
+                              }}
+                            />
+                          </motion.div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {predictedMatches.length > 0 && (
                   <div className="space-y-3">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">
@@ -210,12 +242,12 @@ export default function GroupPage() {
                   </div>
                 )}
 
-                {unpredictedUpcoming.length > 0 && (
+                {pastResults.length > 0 && (
                   <div className="space-y-3">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">
-                      Upcoming to predict
+                      Past results
                     </h3>
-                    {upcomingByDay.map((group) => (
+                    {pastByDay.map((group) => (
                       <div key={group.label} className="space-y-3">
                         <h4 className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wider">
                           {group.label}
