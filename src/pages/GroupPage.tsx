@@ -46,15 +46,7 @@ export default function GroupPage() {
     return map;
   }, [nickname, predictionVersion]);
 
-  if (!group) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Group not found</p>
-      </div>
-    );
-  }
-
-  const competition = COMPETITIONS.find((c) => c.id === group.competitionId);
+  const competition = group ? COMPETITIONS.find((c) => c.id === group.competitionId) : undefined;
 
   // Group matches by round_number for the Matches tab
   const roundGroups = useMemo(() => {
@@ -108,6 +100,14 @@ export default function GroupPage() {
       didAutoScrollRef.current = true;
     });
   }, [activeTab, currentRound, roundGroups.length]);
+
+  if (!group) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Group not found</p>
+      </div>
+    );
+  }
 
   const leaderboard = group.members
     .map((member) => {
