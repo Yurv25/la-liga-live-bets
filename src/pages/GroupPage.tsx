@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getGroupById, joinGroup, getNickname, getPredictions, calculatePoints } from '@/lib/storage';
 import { useFilteredMatches } from '@/hooks/useMatches';
@@ -56,43 +56,58 @@ export default function GroupPage() {
 
   const competition = COMPETITIONS.find((c) => c.id === group.competitionId);
 
-  const predictedMatches = matches
-    .filter((m) => predictionsMap.has(m.id))
-    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
-
-  const unpredictedUpcoming = matches
-    .filter((m) => m.status === 'NS' && !predictionsMap.has(m.id))
-    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-
-  const pastResults = matches
-    .filter((m) => m.status === 'FT' && !predictionsMap.has(m.id))
-    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
-
-  const groupByDay = (list: Match[]) => {
-    const groups: { label: string; matches: Match[] }[] = [];
-    for (const match of list) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const target = new Date(match.startTime);
-      target.setHours(0, 0, 0, 0);
-      const diffDays = Math.round((target.getTime() - today.getTime()) / 86400000);
-      const label =
-        diffDays === 0
-          ? 'Today'
-          : diffDays === 1
-          ? 'Tomorrow'
-          : diffDays === -1
-          ? 'Yesterday'
-          : target.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
-      const existing = groups.find((g) => g.label === label);
-      if (existing) existing.matches.push(match);
-      else groups.push({ label, matches: [match] });
+  // Group matches by round_number for the Matches tab
+  const roundGroups = useMemo(() => {
+    const map = new Map<number, Match[]>();
+    for (const m of matches) {
+      if (typeof m.round !== 'number') continue;
+      if (!map.has(m.round)) map.set(m.round, []);
+      map.get(m.round)!.push(m);
     }
-    return groups;
-  };
+    return Array.from(map.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([round, list]) => ({
+        round,
+        matches: list.sort(
+          (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+        ),
+      }));
+  }, [matches]);
 
-  const upcomingByDay = groupByDay(unpredictedUpcoming);
-  const pastByDay = groupByDay(pastResults);
+  const currentRound = useMemo(() => {
+    if (roundGroups.length === 0) return null;
+    const now = Date.now();
+    let bestRound = roundGroups[0].round;
+    let bestDiff = Infinity;
+    for (const g of roundGroups) {
+      for (const m of g.matches) {
+        const diff = Math.abs(new Date(m.startTime).getTime() - now);
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          bestRound = g.round;
+        }
+      }
+    }
+    return bestRound;
+  }, [roundGroups]);
+
+  const roundRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const didAutoScrollRef = useRef(false);
+
+  useEffect(() => {
+    if (activeTab !== 'matches') {
+      didAutoScrollRef.current = false;
+      return;
+    }
+    if (didAutoScrollRef.current) return;
+    if (currentRound == null) return;
+    const el = roundRefs.current[currentRound];
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ block: 'start', behavior: 'auto' });
+      didAutoScrollRef.current = true;
+    });
+  }, [activeTab, currentRound, roundGroups.length]);
 
   const leaderboard = group.members
     .map((member) => {
@@ -181,99 +196,41 @@ export default function GroupPage() {
 
         {activeTab === 'matches' && (
           <div className="space-y-6">
-            {predictedMatches.length === 0 && unpredictedUpcoming.length === 0 && pastResults.length === 0 ? (
+            {roundGroups.length === 0 ? (
               <p className="text-center text-muted-foreground py-12 text-sm">No matches yet</p>
             ) : (
-              <>
-                {unpredictedUpcoming.length > 0 && (
-                  <div className="space-y-3">
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">
-                      Upcoming to predict
-                    </h3>
-                    {upcomingByDay.map((group) => (
-                      <div key={group.label} className="space-y-3">
-                        <h4 className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wider">
-                          {group.label}
-                        </h4>
-                        {group.matches.map((match, i) => (
-                          <motion.div
-                            key={match.id}
-                            initial={{ opacity: 0, y: 12 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.05 }}
-                          >
-                            <MatchCard
-                              match={match}
-                              prediction={predictionsMap.get(match.id)}
-                              onPredict={(m) => {
-                                if (!nickname) return;
-                                setSelectedMatch(m);
-                              }}
-                            />
-                          </motion.div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {predictedMatches.length > 0 && (
-                  <div className="space-y-3">
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">
-                      Your predictions
-                    </h3>
-                    {predictedMatches.map((match, i) => (
-                      <motion.div
-                        key={match.id}
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.05 }}
-                      >
-                        <MatchCard
-                          match={match}
-                          prediction={predictionsMap.get(match.id)}
-                          onPredict={(m) => {
-                            if (!nickname) return;
-                            setSelectedMatch(m);
-                          }}
-                        />
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-
-                {pastResults.length > 0 && (
-                  <div className="space-y-3">
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">
-                      Past results
-                    </h3>
-                    {pastByDay.map((group) => (
-                      <div key={group.label} className="space-y-3">
-                        <h4 className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wider">
-                          {group.label}
-                        </h4>
-                        {group.matches.map((match, i) => (
-                          <motion.div
-                            key={match.id}
-                            initial={{ opacity: 0, y: 12 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.05 }}
-                          >
-                            <MatchCard
-                              match={match}
-                              prediction={predictionsMap.get(match.id)}
-                              onPredict={(m) => {
-                                if (!nickname) return;
-                                setSelectedMatch(m);
-                              }}
-                            />
-                          </motion.div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
+              roundGroups.map(({ round, matches: roundMatches }) => (
+                <div
+                  key={round}
+                  ref={(el) => { roundRefs.current[round] = el; }}
+                  data-round={round}
+                  className="space-y-3 scroll-mt-24"
+                >
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">
+                    Round {round}
+                    {round === currentRound && (
+                      <span className="ml-2 text-[10px] font-bold text-primary">CURRENT</span>
+                    )}
+                  </h3>
+                  {roundMatches.map((match, i) => (
+                    <motion.div
+                      key={match.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                    >
+                      <MatchCard
+                        match={match}
+                        prediction={predictionsMap.get(match.id)}
+                        onPredict={(m) => {
+                          if (!nickname) return;
+                          setSelectedMatch(m);
+                        }}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              ))
             )}
           </div>
         )}
@@ -284,7 +241,7 @@ export default function GroupPage() {
           match={selectedMatch}
           onClose={() => {
             setSelectedMatch(null);
-            setPredictionVersion(v => v + 1);
+            setPredictionVersion((v) => v + 1);
           }}
         />
       )}
@@ -293,3 +250,4 @@ export default function GroupPage() {
     </div>
   );
 }
+

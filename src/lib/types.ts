@@ -11,6 +11,7 @@ export interface Match {
   awayLogo: string;
   homeTeamId?: number | null;
   awayTeamId?: number | null;
+  round?: number | null;
 }
 
 export interface Prediction {
