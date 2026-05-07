@@ -56,43 +56,58 @@ export default function GroupPage() {
 
   const competition = COMPETITIONS.find((c) => c.id === group.competitionId);
 
-  const predictedMatches = matches
-    .filter((m) => predictionsMap.has(m.id))
-    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
-
-  const unpredictedUpcoming = matches
-    .filter((m) => m.status === 'NS' && !predictionsMap.has(m.id))
-    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-
-  const pastResults = matches
-    .filter((m) => m.status === 'FT' && !predictionsMap.has(m.id))
-    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
-
-  const groupByDay = (list: Match[]) => {
-    const groups: { label: string; matches: Match[] }[] = [];
-    for (const match of list) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const target = new Date(match.startTime);
-      target.setHours(0, 0, 0, 0);
-      const diffDays = Math.round((target.getTime() - today.getTime()) / 86400000);
-      const label =
-        diffDays === 0
-          ? 'Today'
-          : diffDays === 1
-          ? 'Tomorrow'
-          : diffDays === -1
-          ? 'Yesterday'
-          : target.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
-      const existing = groups.find((g) => g.label === label);
-      if (existing) existing.matches.push(match);
-      else groups.push({ label, matches: [match] });
+  // Group matches by round_number for the Matches tab
+  const roundGroups = useMemo(() => {
+    const map = new Map<number, Match[]>();
+    for (const m of matches) {
+      if (typeof m.round !== 'number') continue;
+      if (!map.has(m.round)) map.set(m.round, []);
+      map.get(m.round)!.push(m);
     }
-    return groups;
-  };
+    return Array.from(map.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([round, list]) => ({
+        round,
+        matches: list.sort(
+          (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+        ),
+      }));
+  }, [matches]);
 
-  const upcomingByDay = groupByDay(unpredictedUpcoming);
-  const pastByDay = groupByDay(pastResults);
+  const currentRound = useMemo(() => {
+    if (roundGroups.length === 0) return null;
+    const now = Date.now();
+    let bestRound = roundGroups[0].round;
+    let bestDiff = Infinity;
+    for (const g of roundGroups) {
+      for (const m of g.matches) {
+        const diff = Math.abs(new Date(m.startTime).getTime() - now);
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          bestRound = g.round;
+        }
+      }
+    }
+    return bestRound;
+  }, [roundGroups]);
+
+  const roundRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const didAutoScrollRef = useRef(false);
+
+  useEffect(() => {
+    if (activeTab !== 'matches') {
+      didAutoScrollRef.current = false;
+      return;
+    }
+    if (didAutoScrollRef.current) return;
+    if (currentRound == null) return;
+    const el = roundRefs.current[currentRound];
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ block: 'start', behavior: 'auto' });
+      didAutoScrollRef.current = true;
+    });
+  }, [activeTab, currentRound, roundGroups.length]);
 
   const leaderboard = group.members
     .map((member) => {
