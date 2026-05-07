@@ -233,9 +233,20 @@ export default function GroupPage() {
               ))
             )}
           </div>
-        )}
+      </div>
+
+      {selectedMatch && (
+        <PredictionModal
+          match={selectedMatch}
+          onClose={() => {
+            setSelectedMatch(null);
+            setPredictionVersion((v) => v + 1);
+          }}
+        />
+      )}
 
       {!nickname && <NicknamePrompt onSet={(n) => setNickname2(n)} />}
     </div>
   );
 }
+
