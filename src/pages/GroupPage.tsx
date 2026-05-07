@@ -101,6 +101,14 @@ export default function GroupPage() {
     });
   }, [activeTab, currentRound, roundGroups.length]);
 
+  if (!group) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Group not found</p>
+      </div>
+    );
+  }
+
   const leaderboard = group.members
     .map((member) => {
       const memberPredictions = getPredictions().filter((p) => p.nickname === member.nickname);
