@@ -1,6 +1,5 @@
 import { Match } from './types';
 import { fetchAllMatches } from './api';
-import { getMatches as getMockMatches } from './matchData';
 
 type Listener = () => void;
 
@@ -34,14 +33,13 @@ const SIM_TICK = 2_000; // 2s
 
 class MatchStore {
   private state: MatchStoreState = {
-    matches: getMockMatches(),
+    matches: [],
     loading: false,
     lastFetchTime: 0,
   };
 
   private listeners = new Set<Listener>();
   private timers: ReturnType<typeof setTimeout>[] = [];
-  private simTimer: ReturnType<typeof setInterval> | null = null;
   private refCount = 0;
 
   subscribe(listener: Listener): () => void {
@@ -50,7 +48,6 @@ class MatchStore {
 
     if (this.refCount === 1) {
       this.startPolling();
-      this.startSimTick();
     }
 
     return () => {
@@ -58,27 +55,8 @@ class MatchStore {
       this.refCount--;
       if (this.refCount === 0) {
         this.stopPolling();
-        this.stopSimTick();
       }
     };
-  }
-
-  // Refreshes mock-data-derived state (simulated live matches) on a fast cadence
-  // so demo "live" matches visibly progress between API polls.
-  private startSimTick() {
-    this.simTimer = setInterval(() => {
-      // Only tick when running on mock data (no real API data has overridden state).
-      if (this.state.lastFetchTime === 0) {
-        this.setState({ matches: getMockMatches() });
-      }
-    }, SIM_TICK);
-  }
-
-  private stopSimTick() {
-    if (this.simTimer) {
-      clearInterval(this.simTimer);
-      this.simTimer = null;
-    }
   }
 
   getSnapshot(): MatchStoreState {

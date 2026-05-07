@@ -51,6 +51,7 @@ function mapMatch(ev: any) {
     awayTeamId,
     homeLogo: teamLogoUrl(homeTeamId),
     awayLogo: teamLogoUrl(awayTeamId),
+    round: ev.round_number ?? null,
   };
 }
 
