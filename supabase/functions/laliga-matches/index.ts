@@ -74,10 +74,10 @@ Deno.serve(async (req) => {
     // Fetch first page + live in parallel
     const [firstPageRes, liveRes] = await Promise.all([
       fetch(
-        `${BASE_URL}/v2/events/?league_id=${LA_LIGA_ID}&limit=${PAGE_SIZE}&offset=0`,
+        `${BASE_URL}/v2/events/?league_id=${LA_LIGA_ID}&season_id=294&limit=${PAGE_SIZE}&offset=0`,
         { headers }
       ),
-      fetch(`${BASE_URL}/v2/events/live/?league_id=${LA_LIGA_ID}`, { headers }),
+      fetch(`${BASE_URL}/v2/events/live/?league_id=${LA_LIGA_ID}&season_id=294`, { headers }),
     ]);
 
     if (!firstPageRes.ok) throw new Error(`Events API: ${firstPageRes.status}`);
@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
       const pages = await Promise.all(
         offsets.map((offset) =>
           fetch(
-            `${BASE_URL}/v2/events/?league_id=${LA_LIGA_ID}&limit=${PAGE_SIZE}&offset=${offset}`,
+            `${BASE_URL}/v2/events/?league_id=${LA_LIGA_ID}&season_id=294&limit=${PAGE_SIZE}&offset=${offset}`,
             { headers }
           ).then((r) => (r.ok ? r.json() : { results: [] }))
         )
