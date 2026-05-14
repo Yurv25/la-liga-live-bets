@@ -96,7 +96,16 @@ export default function GroupPage() {
     const el = roundRefs.current[currentRound];
     if (!el) return;
     requestAnimationFrame(() => {
-      el.scrollIntoView({ block: 'start', behavior: 'auto' });
+      //el.scrollIntoView({ block: 'start', behavior: 'auto' });
+      //didAutoScrollRef.current = true;
+      const container = el.closest('.overflow-y-auto');
+      if (container) {
+          const containerRect = container.getBoundingClientRect();
+          const elRect = el.getBoundingClientRect();
+          container.scrollTop = container.scrollTop + elRect.top - containerRect.top;
+      } else {
+        el.scrollIntoView({ block: 'start', behavior: 'auto' });
+      }
       didAutoScrollRef.current = true;
     });
   }, [activeTab, currentRound, roundGroups.length]);
@@ -195,7 +204,7 @@ export default function GroupPage() {
         )}
 
         {activeTab === 'matches' && (
-          <div className="space-y-6">
+          <div className="space-y-6 overflow-y-auto" style={{ height: 'calc(100vh - 140px)' }}>
             {roundGroups.length === 0 ? (
               <p className="text-center text-muted-foreground py-12 text-sm">No matches yet</p>
             ) : (
@@ -204,7 +213,7 @@ export default function GroupPage() {
                   key={round}
                   ref={(el) => { roundRefs.current[round] = el; }}
                   data-round={round}
-                  className="space-y-3 scroll-mt-24"
+                  className="space-y-3 scroll-mt-8"
                 >
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">
                     Round {round}

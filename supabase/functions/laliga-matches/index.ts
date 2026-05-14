@@ -117,8 +117,14 @@ Deno.serve(async (req) => {
     const mappedLive = liveEvents.map((m: any) => mapMatch(m));
 
     // Merge: live overrides scheduled by id
+    //const liveMap = new Map(mappedLive.map((m: any) => [m.id, m]));
+    //const merged = mappedEvents.map((ev: any) => liveMap.get(ev.id) || ev);
     const liveMap = new Map(mappedLive.map((m: any) => [m.id, m]));
-    const merged = mappedEvents.map((ev: any) => liveMap.get(ev.id) || ev);
+    const merged = mappedEvents.map((ev: any) => {
+      const live = liveMap.get(ev.id);
+      if (live) return { ...ev, ...live, round: ev.round }; // keep round from event
+      return ev;
+    });
     mappedLive.forEach((m: any) => {
       if (!mappedEvents.find((ev: any) => ev.id === m.id)) merged.push(m);
     });

@@ -5,10 +5,10 @@ import { useFilteredMatches } from '@/hooks/useMatches';
 import MatchCard from '@/components/MatchCard';
 import PredictionModal from '@/components/PredictionModal';
 import NicknamePrompt from '@/components/NicknamePrompt';
-import { Trophy, Zap, CalendarDays } from 'lucide-react';
+import { Trophy, Zap} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-type Tab = 'all' | 'live' | 'upcoming';
+type Tab = 'all' | 'live' ;
 
 function getDayLabel(dateStr: string): string {
   const date = new Date(dateStr);
@@ -61,15 +61,9 @@ export default function LiveMatches() {
     return map;
   }, [predictionVersion, filteredMatches]);
 
-  const groupedMatches = useMemo(() => {
-    if (tab === 'upcoming') return groupMatchesByDay(filteredMatches);
-    return null;
-  }, [tab, filteredMatches]);
-
   const tabs: { key: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
     { key: 'all', label: 'All', icon: <Trophy className="h-4 w-4" /> },
-    { key: 'live', label: 'Live', icon: <Zap className="h-4 w-4" />, count: liveCount },
-    { key: 'upcoming', label: 'Upcoming', icon: <CalendarDays className="h-4 w-4" /> },
+    { key: 'live', label: 'Live', icon: <Zap className="h-4 w-4" />, count: liveCount }
   ];
 
   const renderMatchCard = (match: Match, i: number) => (
@@ -148,16 +142,6 @@ export default function LiveMatches() {
             >
               {tab === 'live' ? 'No live matches right now' : 'No matches found'}
             </motion.p>
-          ) : groupedMatches ? (
-            // Grouped by day (upcoming tab)
-            groupedMatches.map((group) => (
-              <div key={group.label} className="space-y-3">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">
-                  {group.label}
-                </h3>
-                {group.matches.map((match, i) => renderMatchCard(match, i))}
-              </div>
-            ))
           ) : (
             // Flat list (all / live tabs)
             filteredMatches.map((match, i) => renderMatchCard(match, i))
