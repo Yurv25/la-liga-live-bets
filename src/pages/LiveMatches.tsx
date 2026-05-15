@@ -1,69 +1,39 @@
 import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Match } from '@/lib/types';
-import { getNickname, getPredictions } from '@/lib/storage';
+import { fetchMyPredictions } from '@/lib/storage';
+import { useAuth } from '@/lib/auth';
 import { useFilteredMatches } from '@/hooks/useMatches';
 import MatchCard from '@/components/MatchCard';
 import PredictionModal from '@/components/PredictionModal';
-import NicknamePrompt from '@/components/NicknamePrompt';
-import { Trophy, Zap} from 'lucide-react';
+import UserMenu from '@/components/UserMenu';
+import { Trophy, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-type Tab = 'all' | 'live' ;
-
-function getDayLabel(dateStr: string): string {
-  const date = new Date(dateStr);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const target = new Date(date);
-  target.setHours(0, 0, 0, 0);
-
-  const diffDays = Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Tomorrow';
-  return target.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
-}
-
-function groupMatchesByDay(matches: Match[]): { label: string; matches: Match[] }[] {
-  const sorted = [...matches].sort(
-    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-  );
-
-  const groups: { label: string; matches: Match[] }[] = [];
-  for (const match of sorted) {
-    const label = getDayLabel(match.startTime);
-    const existing = groups.find((g) => g.label === label);
-    if (existing) {
-      existing.matches.push(match);
-    } else {
-      groups.push({ label, matches: [match] });
-    }
-  }
-  return groups;
-}
+type Tab = 'all' | 'live';
 
 export default function LiveMatches() {
   const [tab, setTab] = useState<Tab>('all');
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
-  const [nickname, setNickname2] = useState(getNickname());
-  const [predictionVersion, setPredictionVersion] = useState(0);
+  const { user } = useAuth();
 
   const { matches: filteredMatches, loading, liveCount } = useFilteredMatches(tab);
 
+  const { data: myPredictions = [], refetch } = useQuery({
+    queryKey: ['my-predictions', user?.id],
+    queryFn: fetchMyPredictions,
+    enabled: !!user,
+  });
+
   const predictionsMap = useMemo(() => {
-    void predictionVersion;
-    const predictions = getPredictions();
-    const map = new Map<string, typeof predictions[0]>();
-    const nick = getNickname();
-    if (nick) {
-      predictions.filter(p => p.nickname === nick).forEach(p => map.set(p.matchId, p));
-    }
+    const map = new Map<string, typeof myPredictions[0]>();
+    myPredictions.forEach((p) => map.set(p.matchId, p));
     return map;
-  }, [predictionVersion, filteredMatches]);
+  }, [myPredictions]);
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
     { key: 'all', label: 'All', icon: <Trophy className="h-4 w-4" /> },
-    { key: 'live', label: 'Live', icon: <Zap className="h-4 w-4" />, count: liveCount }
+    { key: 'live', label: 'Live', icon: <Zap className="h-4 w-4" />, count: liveCount },
   ];
 
   const renderMatchCard = (match: Match, i: number) => (
@@ -76,17 +46,13 @@ export default function LiveMatches() {
       <MatchCard
         match={match}
         prediction={predictionsMap.get(match.id)}
-        onPredict={(m) => {
-          if (!nickname) return;
-          setSelectedMatch(m);
-        }}
+        onPredict={(m) => setSelectedMatch(m)}
       />
     </motion.div>
   );
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
       <div className="bg-header border-b border-border/50 px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -96,10 +62,12 @@ export default function LiveMatches() {
             Praedictio
           </span>
         </div>
-        <span className="text-xs text-muted-foreground font-medium">La Liga</span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground font-medium">La Liga</span>
+          <UserMenu />
+        </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-2 px-4 py-3 bg-header/50 border-b border-border/30">
         {tabs.map((t) => (
           <button
@@ -124,14 +92,12 @@ export default function LiveMatches() {
         ))}
       </div>
 
-      {/* Loading */}
       {loading && (
         <div className="flex justify-center py-4">
           <div className="h-5 w-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
         </div>
       )}
 
-      {/* Matches */}
       <div className="p-4 space-y-3 max-w-lg mx-auto">
         <AnimatePresence mode="wait">
           {filteredMatches.length === 0 ? (
@@ -143,19 +109,20 @@ export default function LiveMatches() {
               {tab === 'live' ? 'No live matches right now' : 'No matches found'}
             </motion.p>
           ) : (
-            // Flat list (all / live tabs)
             filteredMatches.map((match, i) => renderMatchCard(match, i))
           )}
         </AnimatePresence>
       </div>
 
-      {/* Prediction Modal */}
       {selectedMatch && (
-        <PredictionModal match={selectedMatch} onClose={() => { setSelectedMatch(null); setPredictionVersion(v => v + 1); }} />
+        <PredictionModal
+          match={selectedMatch}
+          onClose={() => {
+            setSelectedMatch(null);
+            refetch();
+          }}
+        />
       )}
-
-      {/* Nickname prompt */}
-      {!nickname && <NicknamePrompt onSet={(n) => setNickname2(n)} />}
     </div>
   );
 }

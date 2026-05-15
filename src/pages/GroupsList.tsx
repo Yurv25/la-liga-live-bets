@@ -1,15 +1,17 @@
 import { useNavigate } from 'react-router-dom';
-import { getGroups, getNickname } from '@/lib/storage';
+import { useQuery } from '@tanstack/react-query';
+import { fetchMyGroups } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Plus, Users, Trophy } from 'lucide-react';
-import NicknamePrompt from '@/components/NicknamePrompt';
-import { useState } from 'react';
+import { ArrowLeft, Plus, Users } from 'lucide-react';
+import UserMenu from '@/components/UserMenu';
 import { motion } from 'framer-motion';
 
 export default function GroupsList() {
   const navigate = useNavigate();
-  const groups = getGroups();
-  const [nickname, setNickname2] = useState(getNickname());
+  const { data: groups = [], isLoading } = useQuery({
+    queryKey: ['groups'],
+    queryFn: fetchMyGroups,
+  });
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -20,16 +22,24 @@ export default function GroupsList() {
           </button>
           <span className="text-lg font-bold font-display text-header-foreground">My Groups</span>
         </div>
-        <button
-          onClick={() => navigate('/create-group')}
-          className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/create-group')}
+            className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors"
+            aria-label="Create group"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <UserMenu />
+        </div>
       </div>
 
       <div className="p-4 max-w-lg mx-auto space-y-3">
-        {groups.length === 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <div className="h-5 w-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          </div>
+        ) : groups.length === 0 ? (
           <div className="text-center py-16 space-y-4">
             <div className="h-16 w-16 rounded-2xl bg-secondary flex items-center justify-center mx-auto mb-4">
               <Users className="h-8 w-8 text-muted-foreground" />
@@ -46,7 +56,7 @@ export default function GroupsList() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
-              onClick={() => navigate(`/group/${g.id}`)}
+              onClick={() => navigate(`/group/${g.joinCode}`)}
               className="w-full rounded-xl border border-border/50 bg-card p-4 text-left hover:bg-card/80 transition-colors flex items-center gap-4"
             >
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -60,23 +70,6 @@ export default function GroupsList() {
           ))
         )}
       </div>
-
-      {/* Bottom nav */}
-      <div className="fixed bottom-0 left-0 right-0 glass flex justify-around py-3 max-w-lg mx-auto">
-        <button
-          onClick={() => navigate('/')}
-          className="flex flex-col items-center text-muted-foreground text-xs font-medium gap-1 hover:text-foreground transition-colors"
-        >
-          <Trophy className="h-5 w-5" />
-          Matches
-        </button>
-        <button className="flex flex-col items-center text-primary text-xs font-medium gap-1">
-          <Users className="h-5 w-5" />
-          Groups
-        </button>
-      </div>
-
-      {!nickname && <NicknamePrompt onSet={(n) => setNickname2(n)} />}
     </div>
   );
 }

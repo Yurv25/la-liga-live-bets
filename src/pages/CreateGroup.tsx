@@ -1,30 +1,41 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createGroup, getNickname } from '@/lib/storage';
+import { createGroup } from '@/lib/storage';
 import { COMPETITIONS } from '@/lib/competitions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
-import NicknamePrompt from '@/components/NicknamePrompt';
+import UserMenu from '@/components/UserMenu';
 import { motion } from 'framer-motion';
 
 export default function CreateGroup() {
   const [groupName, setGroupName] = useState('');
   const [competitionId, setCompetitionId] = useState('laliga');
-  const [createdId, setCreatedId] = useState<string | null>(null);
-  const [nickname, setNickname2] = useState(getNickname());
+  const [createdCode, setCreatedCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
 
-  const handleCreate = () => {
-    if (!groupName.trim() || !nickname) return;
-    const group = createGroup(groupName.trim(), nickname, competitionId);
-    setCreatedId(group.id);
-    toast.success('Group created!');
+  const handleCreate = async () => {
+    if (!groupName.trim()) return;
+    setBusy(true);
+    try {
+      const group = await createGroup(groupName.trim(), competitionId);
+      if (!group) {
+        toast.error('Could not create group');
+        return;
+      }
+      setCreatedCode(group.joinCode);
+      toast.success('Group created!');
+    } catch (e: any) {
+      toast.error(e.message ?? 'Could not create group');
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const shareLink = createdId ? `${window.location.origin}/group/${createdId}` : '';
+  const shareLink = createdCode ? `${window.location.origin}/group/${createdCode}` : '';
 
   const copyLink = () => {
     navigator.clipboard.writeText(shareLink);
@@ -35,11 +46,14 @@ export default function CreateGroup() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="bg-header border-b border-border/50 px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="text-header-foreground/70 hover:text-header-foreground">
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <span className="text-lg font-bold font-display text-header-foreground">Create Group</span>
+      <div className="bg-header border-b border-border/50 px-4 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="text-header-foreground/70 hover:text-header-foreground">
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <span className="text-lg font-bold font-display text-header-foreground">Create Group</span>
+        </div>
+        <UserMenu />
       </div>
 
       <div className="p-4 max-w-lg mx-auto space-y-6">
@@ -53,7 +67,6 @@ export default function CreateGroup() {
           />
         </div>
 
-        {/* Competition Selection */}
         <div>
           <label className="text-sm font-semibold text-foreground block mb-2">Competition</label>
           <div className="grid grid-cols-2 gap-2">
@@ -80,12 +93,12 @@ export default function CreateGroup() {
         <Button
           onClick={handleCreate}
           className="w-full font-bold py-6 text-base rounded-xl"
-          disabled={!groupName.trim()}
+          disabled={!groupName.trim() || busy}
         >
-          Create Group
+          {busy ? 'Creating...' : 'Create Group'}
         </Button>
 
-        {createdId && (
+        {createdCode && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
             <label className="text-sm font-semibold text-foreground block mb-2">Share Link</label>
             <div className="flex items-center gap-2 rounded-xl border border-border/50 bg-card p-3">
@@ -97,15 +110,13 @@ export default function CreateGroup() {
             <Button
               variant="outline"
               className="w-full mt-4 rounded-xl"
-              onClick={() => navigate(`/group/${createdId}`)}
+              onClick={() => navigate(`/group/${createdCode}`)}
             >
               View Group
             </Button>
           </motion.div>
         )}
       </div>
-
-      {!nickname && <NicknamePrompt onSet={(n) => setNickname2(n)} />}
     </div>
   );
 }

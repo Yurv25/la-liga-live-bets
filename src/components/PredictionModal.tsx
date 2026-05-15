@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Match } from '@/lib/types';
-import { getNickname, setNickname, savePrediction, getPredictions } from '@/lib/storage';
+import { savePrediction, fetchMyPredictions } from '@/lib/storage';
+import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { ArrowLeft, Minus, Plus, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -43,19 +43,27 @@ function ScoreInput({ value, onChange, disabled }: { value: number; onChange: (v
 }
 
 export default function PredictionModal({ match, onClose }: PredictionModalProps) {
-  const currentNick = getNickname() || '';
-
-  // Pre-fill from existing prediction (if any) for the current user
-  const existing = useMemo(() => {
-    if (!currentNick) return null;
-    return getPredictions().find(p => p.matchId === match.id && p.nickname === currentNick) || null;
-  }, [match.id, currentNick]);
-
-  const [homeScore, setHomeScore] = useState(existing?.homeScore ?? 0);
-  const [awayScore, setAwayScore] = useState(existing?.awayScore ?? 0);
-  const [nickname, setNick] = useState(currentNick);
-
+  const { user } = useAuth();
+  const [homeScore, setHomeScore] = useState(0);
+  const [awayScore, setAwayScore] = useState(0);
+  const [hasExisting, setHasExisting] = useState(false);
+  const [busy, setBusy] = useState(false);
   const locked = isPredictionLocked(match);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    fetchMyPredictions().then((preds) => {
+      if (cancelled) return;
+      const existing = preds.find((p) => p.matchId === match.id);
+      if (existing) {
+        setHomeScore(existing.homeScore);
+        setAwayScore(existing.awayScore);
+        setHasExisting(true);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [match.id, user]);
 
   const handleQuickPick = (h: number, a: number) => {
     if (locked) return;
@@ -63,27 +71,27 @@ export default function PredictionModal({ match, onClose }: PredictionModalProps
     setAwayScore(a);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (locked) {
       toast.error('Prediction locked');
       return;
     }
-    if (!nickname.trim()) {
-      toast.error('Please enter a nickname');
+    if (!user) {
+      toast.error('Please sign in');
       return;
     }
-    setNickname(nickname.trim());
-    savePrediction({
-      matchId: match.id,
-      homeScore,
-      awayScore,
-      nickname: nickname.trim(),
-      timestamp: Date.now(),
-    });
-    toast.success(existing ? 'Prediction updated!' : 'Prediction saved!', {
-      description: `${match.homeTeam} ${homeScore} – ${awayScore} ${match.awayTeam}`,
-    });
-    onClose();
+    setBusy(true);
+    try {
+      await savePrediction({ matchId: match.id, homeScore, awayScore });
+      toast.success(hasExisting ? 'Prediction updated!' : 'Prediction saved!', {
+        description: `${match.homeTeam} ${homeScore} – ${awayScore} ${match.awayTeam}`,
+      });
+      onClose();
+    } catch (e: any) {
+      toast.error(e.message ?? 'Could not save prediction');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -94,17 +102,15 @@ export default function PredictionModal({ match, onClose }: PredictionModalProps
         exit={{ y: 100, opacity: 0 }}
         className="w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl bg-card border border-border/50 shadow-2xl"
       >
-        {/* Header */}
         <div className="flex items-center gap-3 p-4 border-b border-border/30">
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h2 className="text-lg font-bold font-display">
-            {existing ? 'Edit Prediction' : 'Make Your Prediction'}
+            {hasExisting ? 'Edit Prediction' : 'Make Your Prediction'}
           </h2>
         </div>
 
-        {/* Match Info */}
         <div className="mx-4 mt-4 flex items-center justify-between rounded-xl bg-secondary/50 p-3">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             {match.homeLogo && (
@@ -129,7 +135,6 @@ export default function PredictionModal({ match, onClose }: PredictionModalProps
           </div>
         </div>
 
-        {/* Locked banner */}
         {locked && (
           <div className="mx-4 mt-3 flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2">
             <Lock className="h-4 w-4 text-destructive" />
@@ -139,19 +144,6 @@ export default function PredictionModal({ match, onClose }: PredictionModalProps
           </div>
         )}
 
-        {/* Nickname */}
-        {!getNickname() && (
-          <div className="mx-4 mt-4">
-            <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Nickname</label>
-            <Input
-              value={nickname}
-              onChange={(e) => setNick(e.target.value)}
-              placeholder="Enter your nickname"
-            />
-          </div>
-        )}
-
-        {/* Score Input */}
         <div className="px-5 pt-5 pb-3">
           <p className="text-center text-xs text-muted-foreground mb-4 font-medium uppercase tracking-wider">
             Your Prediction
@@ -169,7 +161,6 @@ export default function PredictionModal({ match, onClose }: PredictionModalProps
           </div>
         </div>
 
-        {/* Quick picks */}
         {!locked && (
           <div className="px-5 pb-2">
             <p className="text-center text-[10px] text-muted-foreground mb-2 font-medium uppercase tracking-wider">
@@ -196,14 +187,13 @@ export default function PredictionModal({ match, onClose }: PredictionModalProps
           </div>
         )}
 
-        {/* Submit */}
         <div className="p-4">
           <Button
             onClick={handleSubmit}
-            disabled={locked}
+            disabled={locked || busy}
             className="w-full text-base font-bold py-6 rounded-xl"
           >
-            {locked ? 'Locked' : existing ? 'Update Prediction' : 'Submit Prediction'}
+            {locked ? 'Locked' : busy ? '...' : hasExisting ? 'Update Prediction' : 'Submit Prediction'}
           </Button>
         </div>
       </motion.div>

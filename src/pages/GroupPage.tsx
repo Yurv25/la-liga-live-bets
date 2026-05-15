@@ -1,54 +1,55 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getGroupById, joinGroup, getNickname, getPredictions, calculatePoints } from '@/lib/storage';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchGroupByCode, joinGroupByCode, fetchGroupPredictions, calculatePoints } from '@/lib/storage';
 import { useFilteredMatches } from '@/hooks/useMatches';
 import { COMPETITIONS } from '@/lib/competitions';
-import { Group, Match, Prediction } from '@/lib/types';
+import { useAuth } from '@/lib/auth';
+import { Match, Prediction } from '@/lib/types';
 import { ArrowLeft, Crown, CalendarDays, Trophy } from 'lucide-react';
-import NicknamePrompt from '@/components/NicknamePrompt';
 import MatchCard from '@/components/MatchCard';
 import PredictionModal from '@/components/PredictionModal';
+import UserMenu from '@/components/UserMenu';
 import { motion } from 'framer-motion';
 
 type GroupTab = 'leaderboard' | 'matches';
 
 export default function GroupPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id: code } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [group, setGroup] = useState<Group | null>(null);
-  const [nickname, setNickname2] = useState(getNickname());
+  const qc = useQueryClient();
+  const { user, displayName } = useAuth();
   const [activeTab, setActiveTab] = useState<GroupTab>('leaderboard');
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
-  const [predictionVersion, setPredictionVersion] = useState(0);
 
-  // Centralized match store (handles polling + sim ticks); single source of truth
   const { allMatches: matches } = useFilteredMatches('all');
 
-  useEffect(() => {
-    if (!id) return;
-    const g = getGroupById(id);
-    if (g && nickname) {
-      joinGroup(id, nickname);
-      setGroup(getGroupById(id));
-    } else if (g) {
-      setGroup(g);
-    }
-  }, [id, nickname]);
+  // Auto-join then load
+  const { data: group } = useQuery({
+    queryKey: ['group', code],
+    queryFn: async () => {
+      if (!code) return null;
+      const g = await joinGroupByCode(code);
+      return g ?? (await fetchGroupByCode(code));
+    },
+    enabled: !!code && !!user,
+  });
 
-  // Map of current user's predictions, keyed by matchId, for fast lookup on cards
+  const { data: groupPredictions = [] } = useQuery({
+    queryKey: ['predictions', group?.id],
+    queryFn: () => (group ? fetchGroupPredictions(group.id) : Promise.resolve([] as Prediction[])),
+    enabled: !!group,
+  });
+
   const predictionsMap = useMemo(() => {
-    void predictionVersion;
     const map = new Map<string, Prediction>();
-    if (!nickname) return map;
-    getPredictions()
-      .filter(p => p.nickname === nickname)
-      .forEach(p => map.set(p.matchId, p));
+    if (!user) return map;
+    groupPredictions.filter((p) => p.userId === user.id).forEach((p) => map.set(p.matchId, p));
     return map;
-  }, [nickname, predictionVersion]);
+  }, [groupPredictions, user]);
 
   const competition = group ? COMPETITIONS.find((c) => c.id === group.competitionId) : undefined;
 
-  // Group matches by round_number for the Matches tab
   const roundGroups = useMemo(() => {
     const map = new Map<number, Match[]>();
     for (const m of matches) {
@@ -96,13 +97,11 @@ export default function GroupPage() {
     const el = roundRefs.current[currentRound];
     if (!el) return;
     requestAnimationFrame(() => {
-      //el.scrollIntoView({ block: 'start', behavior: 'auto' });
-      //didAutoScrollRef.current = true;
       const container = el.closest('.overflow-y-auto');
       if (container) {
-          const containerRect = container.getBoundingClientRect();
-          const elRect = el.getBoundingClientRect();
-          container.scrollTop = container.scrollTop + elRect.top - containerRect.top;
+        const containerRect = container.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        container.scrollTop = container.scrollTop + elRect.top - containerRect.top;
       } else {
         el.scrollIntoView({ block: 'start', behavior: 'auto' });
       }
@@ -113,22 +112,22 @@ export default function GroupPage() {
   if (!group) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Group not found</p>
+        <div className="h-5 w-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
       </div>
     );
   }
 
   const leaderboard = group.members
     .map((member) => {
-      const memberPredictions = getPredictions().filter((p) => p.nickname === member.nickname);
+      const memberPreds = groupPredictions.filter((p) => p.userId === member.userId);
       let points = 0;
-      memberPredictions.forEach((pred) => {
+      memberPreds.forEach((pred) => {
         const match = matches.find((m) => m.id === pred.matchId);
         if (match) {
           points += calculatePoints(pred, match.homeScore, match.awayScore, match.status);
         }
       });
-      return { ...member, points, predictions: memberPredictions };
+      return { ...member, points };
     })
     .sort((a, b) => b.points - a.points);
 
@@ -139,7 +138,6 @@ export default function GroupPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
       <div className="bg-header border-b border-border/50 px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="text-header-foreground/70 hover:text-header-foreground">
@@ -154,9 +152,9 @@ export default function GroupPage() {
             )}
           </div>
         </div>
+        <UserMenu />
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-2 px-4 py-3 bg-header/50 border-b border-border/30">
         {tabItems.map((t) => (
           <button
@@ -179,7 +177,7 @@ export default function GroupPage() {
           <div className="space-y-2">
             {leaderboard.map((member, i) => (
               <motion.div
-                key={member.nickname}
+                key={member.userId}
                 initial={{ opacity: 0, x: -12 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.05 }}
@@ -194,7 +192,7 @@ export default function GroupPage() {
                     <span className="text-sm font-bold text-muted-foreground w-4 text-center">{i + 1}</span>
                   )}
                   <span className="font-semibold text-sm">
-                    {member.nickname === nickname ? 'You' : member.nickname}
+                    {member.userId === user?.id ? 'You' : member.displayName}
                   </span>
                 </div>
                 <span className="font-bold text-sm font-display">{member.points} pts</span>
@@ -231,10 +229,7 @@ export default function GroupPage() {
                       <MatchCard
                         match={match}
                         prediction={predictionsMap.get(match.id)}
-                        onPredict={(m) => {
-                          if (!nickname) return;
-                          setSelectedMatch(m);
-                        }}
+                        onPredict={(m) => setSelectedMatch(m)}
                       />
                     </motion.div>
                   ))}
@@ -250,13 +245,10 @@ export default function GroupPage() {
           match={selectedMatch}
           onClose={() => {
             setSelectedMatch(null);
-            setPredictionVersion((v) => v + 1);
+            qc.invalidateQueries({ queryKey: ['predictions', group.id] });
           }}
         />
       )}
-
-      {!nickname && <NicknamePrompt onSet={(n) => setNickname2(n)} />}
     </div>
   );
 }
-
