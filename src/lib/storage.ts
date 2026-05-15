@@ -1,120 +1,176 @@
-import { Prediction, Group, GroupMember } from './types';
-import { seedPredictions } from './matchData';
+import { supabase } from '@/lib/supabaseClient';
+import { Group, GroupMember, Prediction } from './types';
 
-const NICKNAME_KEY = 'gameon_nickname';
-const PREDICTIONS_KEY = 'gameon_predictions';
-const GROUPS_KEY = 'gameon_groups';
-const SEEDED_KEY = 'gameon_seeded_v1';
-
-// Seed demo predictions on first load so the app shows realistic data out of the box.
-// Bump the SEEDED_KEY suffix (v1 → v2) to re-seed after changing demo data.
-function seedDemoDataIfNeeded(): void {
-  if (typeof localStorage === 'undefined') return;
-  if (localStorage.getItem(SEEDED_KEY)) return;
-
-  const existing = localStorage.getItem(PREDICTIONS_KEY);
-  const predictions: Prediction[] = existing ? JSON.parse(existing) : [];
-  const now = Date.now();
-  for (const seed of seedPredictions) {
-    const dup = predictions.find(p => p.matchId === seed.matchId && p.nickname === seed.nickname);
-    if (!dup) {
-      predictions.push({ ...seed, timestamp: now });
-    }
-  }
-  localStorage.setItem(PREDICTIONS_KEY, JSON.stringify(predictions));
-  localStorage.setItem(SEEDED_KEY, '1');
+function genJoinCode(): string {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-seedDemoDataIfNeeded();
-
-export function getNickname(): string | null {
-  return localStorage.getItem(NICKNAME_KEY);
-}
-
-export function setNickname(name: string): void {
-  localStorage.setItem(NICKNAME_KEY, name);
-}
-
-export function getPredictions(): Prediction[] {
-  const data = localStorage.getItem(PREDICTIONS_KEY);
-  return data ? JSON.parse(data) : [];
-}
-
-export function savePrediction(prediction: Prediction): void {
-  const predictions = getPredictions();
-  const existing = predictions.findIndex(
-    (p) => p.matchId === prediction.matchId && p.nickname === prediction.nickname
+async function loadMembers(groupId: string): Promise<GroupMember[]> {
+  const { data: members, error } = await supabase
+    .from('group_members')
+    .select('user_id')
+    .eq('group_id', groupId);
+  if (error || !members?.length) return [];
+  const ids = members.map((m: any) => m.user_id);
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('user_id, display_name')
+    .in('user_id', ids);
+  const nameMap = new Map<string, string>(
+    (profiles ?? []).map((p: any) => [p.user_id, p.display_name])
   );
-  if (existing >= 0) {
-    predictions[existing] = prediction;
-  } else {
-    predictions.push(prediction);
-  }
-  localStorage.setItem(PREDICTIONS_KEY, JSON.stringify(predictions));
+  return ids.map((id) => ({ userId: id, displayName: nameMap.get(id) ?? id.slice(0, 6) }));
 }
 
-export function getGroups(): Group[] {
-  const data = localStorage.getItem(GROUPS_KEY);
-  return data ? JSON.parse(data) : [];
-}
-
-function saveGroups(groups: Group[]): void {
-  localStorage.setItem(GROUPS_KEY, JSON.stringify(groups));
-}
-
-export function createGroup(name: string, creatorNickname: string, competitionId: string = 'laliga'): Group {
-  const groups = getGroups();
-  const group: Group = {
-    id: Math.random().toString(36).substring(2, 8).toUpperCase(),
-    name,
-    competitionId,
-    members: [{ nickname: creatorNickname, predictions: [], points: 0 }],
+function rowToGroup(row: any, members: GroupMember[]): Group {
+  return {
+    id: row.id,
+    joinCode: row.join_code,
+    name: row.name,
+    competitionId: row.competition_id,
+    createdBy: row.created_by,
+    members,
   };
-  groups.push(group);
-  saveGroups(groups);
-  return group;
 }
 
-export function joinGroup(groupId: string, nickname: string): Group | null {
-  const groups = getGroups();
-  const group = groups.find((g) => g.id === groupId);
+export async function fetchMyGroups(): Promise<Group[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data: memberRows } = await supabase
+    .from('group_members')
+    .select('group_id')
+    .eq('user_id', user.id);
+  const ids = (memberRows ?? []).map((r: any) => r.group_id);
+  if (!ids.length) return [];
+  const { data: groupRows, error } = await supabase
+    .from('groups')
+    .select('*')
+    .in('id', ids);
+  if (error || !groupRows) return [];
+  const result: Group[] = [];
+  for (const row of groupRows) {
+    result.push(rowToGroup(row, await loadMembers(row.id)));
+  }
+  return result;
+}
+
+export async function fetchGroupByCode(code: string): Promise<Group | null> {
+  const { data, error } = await supabase
+    .from('groups')
+    .select('*')
+    .eq('join_code', code.toUpperCase())
+    .maybeSingle();
+  if (error || !data) return null;
+  return rowToGroup(data, await loadMembers(data.id));
+}
+
+export async function createGroup(
+  name: string,
+  competitionId: string
+): Promise<Group | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  // Try a few times in case of join_code collision
+  for (let i = 0; i < 5; i++) {
+    const code = genJoinCode();
+    const { data, error } = await supabase
+      .from('groups')
+      .insert({
+        name,
+        competition_id: competitionId,
+        join_code: code,
+        created_by: user.id,
+      })
+      .select()
+      .single();
+    if (error) {
+      if ((error as any).code === '23505') continue; // unique violation, retry
+      throw error;
+    }
+    await supabase.from('group_members').insert({ group_id: data.id, user_id: user.id });
+    return rowToGroup(data, await loadMembers(data.id));
+  }
+  return null;
+}
+
+export async function joinGroupByCode(code: string): Promise<Group | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const group = await fetchGroupByCode(code);
   if (!group) return null;
-  if (!group.members.find((m) => m.nickname === nickname)) {
-    group.members.push({ nickname, predictions: [], points: 0 });
-    saveGroups(groups);
-  }
-  return group;
+  await supabase
+    .from('group_members')
+    .upsert({ group_id: group.id, user_id: user.id }, { onConflict: 'group_id,user_id' });
+  return await fetchGroupByCode(code);
 }
 
-export function getGroupById(id: string): Group | null {
-  return getGroups().find((g) => g.id === id) || null;
+export async function fetchGroupPredictions(groupId: string): Promise<Prediction[]> {
+  const members = await loadMembers(groupId);
+  if (!members.length) return [];
+  const ids = members.map((m) => m.userId);
+  const { data, error } = await supabase
+    .from('predictions')
+    .select('*')
+    .in('user_id', ids);
+  if (error || !data) return [];
+  const nameMap = new Map(members.map((m) => [m.userId, m.displayName]));
+  return data.map((row: any) => ({
+    matchId: row.match_id,
+    userId: row.user_id,
+    displayName: nameMap.get(row.user_id) ?? '',
+    homeScore: row.home_score,
+    awayScore: row.away_score,
+  }));
 }
 
-export function updateGroupMemberPredictions(
-  groupId: string,
-  nickname: string,
-  predictions: Prediction[]
-): void {
-  const groups = getGroups();
-  const group = groups.find((g) => g.id === groupId);
-  if (!group) return;
-  const member = group.members.find((m) => m.nickname === nickname);
-  if (member) {
-    member.predictions = predictions;
-  }
-  saveGroups(groups);
+export async function fetchMyPredictions(): Promise<Prediction[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data } = await supabase.from('predictions').select('*').eq('user_id', user.id);
+  const displayName =
+    (user.user_metadata?.full_name as string) ??
+    (user.user_metadata?.name as string) ??
+    user.email ??
+    '';
+  return (data ?? []).map((row: any) => ({
+    matchId: row.match_id,
+    userId: row.user_id,
+    displayName,
+    homeScore: row.home_score,
+    awayScore: row.away_score,
+  }));
+}
+
+export async function savePrediction(input: {
+  matchId: string;
+  homeScore: number;
+  awayScore: number;
+}): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+  const { error } = await supabase
+    .from('predictions')
+    .upsert(
+      {
+        user_id: user.id,
+        match_id: input.matchId,
+        home_score: input.homeScore,
+        away_score: input.awayScore,
+      },
+      { onConflict: 'user_id,match_id' }
+    );
+  if (error) throw error;
 }
 
 export function calculatePoints(
-  prediction: Prediction,
+  prediction: { homeScore: number; awayScore: number },
   actualHome: number,
   actualAway: number,
   matchStatus: string
 ): number {
   if (matchStatus !== 'FT') return 0;
-  if (prediction.homeScore === actualHome && prediction.awayScore === actualAway) {
-    return 3;
-  }
+  if (prediction.homeScore === actualHome && prediction.awayScore === actualAway) return 3;
   const predWinner =
     prediction.homeScore > prediction.awayScore
       ? 'home'
@@ -123,6 +179,5 @@ export function calculatePoints(
         : 'draw';
   const actualWinner =
     actualHome > actualAway ? 'home' : actualHome < actualAway ? 'away' : 'draw';
-  if (predWinner === actualWinner) return 1;
-  return 0;
+  return predWinner === actualWinner ? 1 : 0;
 }

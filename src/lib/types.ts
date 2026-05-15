@@ -4,7 +4,7 @@ export interface Match {
   awayTeam: string;
   homeScore: number;
   awayScore: number;
-  status: 'LIVE' | 'HT' | 'FT' | 'NS'; // Not Started
+  status: 'LIVE' | 'HT' | 'FT' | 'NS';
   minute: number | null;
   startTime: string;
   homeLogo: string;
@@ -16,21 +16,22 @@ export interface Match {
 
 export interface Prediction {
   matchId: string;
+  userId: string;
+  displayName: string;
   homeScore: number;
   awayScore: number;
-  nickname: string;
-  timestamp: number;
+}
+
+export interface GroupMember {
+  userId: string;
+  displayName: string;
 }
 
 export interface Group {
   id: string;
+  joinCode: string;
   name: string;
   competitionId: string;
+  createdBy: string;
   members: GroupMember[];
-}
-
-export interface GroupMember {
-  nickname: string;
-  predictions: Prediction[];
-  points: number;
 }
