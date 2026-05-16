@@ -309,7 +309,6 @@ export default function GroupPage() {
           }}
         />
       )}
-      )}
 
       <AlertDialog open={confirmLeave} onOpenChange={setConfirmLeave}>
         <AlertDialogContent>
