@@ -38,6 +38,22 @@ export default function GroupPage() {
   const { user, displayName } = useAuth();
   const [activeTab, setActiveTab] = useState<GroupTab>('leaderboard');
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+
+  const handleLeave = async () => {
+    if (!group) return;
+    setLeaving(true);
+    try {
+      await leaveGroup(group.id);
+      toast.success('You left the group');
+      qc.invalidateQueries({ queryKey: ['groups'] });
+      navigate('/groups');
+    } catch (e: any) {
+      toast.error(e.message ?? 'Could not leave group');
+      setLeaving(false);
+    }
+  };
 
   const { allMatches: matches } = useFilteredMatches('all');
 
@@ -293,6 +309,26 @@ export default function GroupPage() {
           }}
         />
       )}
+      )}
+
+      <AlertDialog open={confirmLeave} onOpenChange={setConfirmLeave}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave this group?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {group.createdBy === user?.id
+                ? 'You created this group. Ownership will transfer to the longest-standing member, or the group will be deleted if you are the last member.'
+                : 'You can rejoin later with the invite link.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={leaving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLeave} disabled={leaving}>
+              {leaving ? 'Leaving...' : 'Leave group'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
