@@ -169,7 +169,34 @@ export default function GroupPage() {
             )}
           </div>
         </div>
-        <UserMenu />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const link = `${window.location.origin}/group/${group.joinCode}`;
+              navigator.clipboard.writeText(link);
+              toast.success('Invite link copied!');
+            }}
+            className="h-9 w-9 rounded-full bg-secondary/60 flex items-center justify-center text-foreground hover:bg-secondary transition-colors"
+            aria-label="Share invite link"
+          >
+            <Share2 className="h-4 w-4" />
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="h-9 w-9 rounded-full bg-secondary/60 flex items-center justify-center text-foreground hover:bg-secondary transition-colors">
+              <MoreVertical className="h-4 w-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => setConfirmLeave(true)}
+                className="cursor-pointer text-destructive focus:text-destructive"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Leave group
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <UserMenu />
+        </div>
       </div>
 
       <div className="flex gap-2 px-4 py-3 bg-header/50 border-b border-border/30">
