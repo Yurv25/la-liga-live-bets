@@ -90,7 +90,11 @@ class MatchStore {
     try {
       const data = await fetchAllMatches();
       if (data.length > 0) {
-        this.setState({ matches: data, lastFetchTime: Date.now(), loading: false });
+        // Dedupe by id so React keys never collide even if upstream regresses
+        const map = new Map<string, typeof data[number]>();
+        for (const m of data) map.set(String(m.id), m);
+        const unique = Array.from(map.values());
+        this.setState({ matches: unique, lastFetchTime: Date.now(), loading: false });
       } else {
         this.setState({ loading: false });
       }

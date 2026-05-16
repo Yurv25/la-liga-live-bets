@@ -126,14 +126,19 @@ Deno.serve(async (req) => {
       return ev;
     });
     mappedLive.forEach((m: any) => {
-      if (!mappedEvents.find((ev: any) => ev.id === m.id)) merged.push(m);
+      if (!mappedEvents.find((ev: any) => String(ev.id) === String(m.id))) merged.push(m);
     });
 
+    // Final dedupe by string id to guarantee no duplicate keys downstream
+    const dedupMap = new Map<string, any>();
+    for (const m of merged) dedupMap.set(String(m.id), m);
+    const deduped = Array.from(dedupMap.values());
+
     console.log(
-      `[laliga-matches] total=${totalCount} fetched=${allResults.length} live=${liveEvents.length} merged=${merged.length}`
+      `[laliga-matches] total=${totalCount} fetched=${allResults.length} live=${liveEvents.length} merged=${merged.length} deduped=${deduped.length}`
     );
 
-    return new Response(JSON.stringify(merged), {
+    return new Response(JSON.stringify(deduped), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
