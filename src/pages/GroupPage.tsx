@@ -1,15 +1,32 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchGroupByCode, joinGroupByCode, fetchGroupPredictions, calculatePoints } from '@/lib/storage';
+import { fetchGroupByCode, joinGroupByCode, fetchGroupPredictions, calculatePoints, leaveGroup } from '@/lib/storage';
 import { useFilteredMatches } from '@/hooks/useMatches';
 import { COMPETITIONS } from '@/lib/competitions';
 import { useAuth } from '@/lib/auth';
 import { Match, Prediction } from '@/lib/types';
-import { ArrowLeft, Crown, CalendarDays, Trophy } from 'lucide-react';
+import { ArrowLeft, Crown, CalendarDays, Trophy, Share2, MoreVertical, LogOut } from 'lucide-react';
 import MatchCard from '@/components/MatchCard';
 import PredictionModal from '@/components/PredictionModal';
 import UserMenu from '@/components/UserMenu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 
 type GroupTab = 'leaderboard' | 'matches';
