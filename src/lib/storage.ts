@@ -105,6 +105,11 @@ export async function joinGroupByCode(code: string): Promise<Group | null> {
   return await fetchGroupByCode(code);
 }
 
+export async function leaveGroup(groupId: string): Promise<void> {
+  const { error } = await supabase.rpc('leave_group', { p_group_id: groupId });
+  if (error) throw error;
+}
+
 export async function fetchGroupPredictions(groupId: string): Promise<Prediction[]> {
   const members = await loadMembers(groupId);
   if (!members.length) return [];

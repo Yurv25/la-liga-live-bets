@@ -15,7 +15,7 @@ type Tab = 'all' | 'live';
 export default function LiveMatches() {
   const [tab, setTab] = useState<Tab>('all');
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
-  const { user } = useAuth();
+  const { user, displayName } = useAuth();
 
   const { matches: filteredMatches, loading, liveCount } = useFilteredMatches(tab);
 
@@ -62,8 +62,13 @@ export default function LiveMatches() {
             Praedictio
           </span>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground font-medium">La Liga</span>
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-xs text-muted-foreground font-medium hidden sm:inline">La Liga</span>
+          {displayName && (
+            <span className="text-sm font-medium text-header-foreground truncate max-w-[140px]">
+              {displayName}
+            </span>
+          )}
           <UserMenu />
         </div>
       </div>

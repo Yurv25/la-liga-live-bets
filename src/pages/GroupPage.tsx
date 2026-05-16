@@ -1,15 +1,32 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchGroupByCode, joinGroupByCode, fetchGroupPredictions, calculatePoints } from '@/lib/storage';
+import { fetchGroupByCode, joinGroupByCode, fetchGroupPredictions, calculatePoints, leaveGroup } from '@/lib/storage';
 import { useFilteredMatches } from '@/hooks/useMatches';
 import { COMPETITIONS } from '@/lib/competitions';
 import { useAuth } from '@/lib/auth';
 import { Match, Prediction } from '@/lib/types';
-import { ArrowLeft, Crown, CalendarDays, Trophy } from 'lucide-react';
+import { ArrowLeft, Crown, CalendarDays, Trophy, Share2, MoreVertical, LogOut } from 'lucide-react';
 import MatchCard from '@/components/MatchCard';
 import PredictionModal from '@/components/PredictionModal';
 import UserMenu from '@/components/UserMenu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 
 type GroupTab = 'leaderboard' | 'matches';
@@ -21,6 +38,22 @@ export default function GroupPage() {
   const { user, displayName } = useAuth();
   const [activeTab, setActiveTab] = useState<GroupTab>('leaderboard');
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+
+  const handleLeave = async () => {
+    if (!group) return;
+    setLeaving(true);
+    try {
+      await leaveGroup(group.id);
+      toast.success('You left the group');
+      qc.invalidateQueries({ queryKey: ['groups'] });
+      navigate('/groups');
+    } catch (e: any) {
+      toast.error(e.message ?? 'Could not leave group');
+      setLeaving(false);
+    }
+  };
 
   const { allMatches: matches } = useFilteredMatches('all');
 
@@ -152,7 +185,34 @@ export default function GroupPage() {
             )}
           </div>
         </div>
-        <UserMenu />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const link = `${window.location.origin}/group/${group.joinCode}`;
+              navigator.clipboard.writeText(link);
+              toast.success('Invite link copied!');
+            }}
+            className="h-9 w-9 rounded-full bg-secondary/60 flex items-center justify-center text-foreground hover:bg-secondary transition-colors"
+            aria-label="Share invite link"
+          >
+            <Share2 className="h-4 w-4" />
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="h-9 w-9 rounded-full bg-secondary/60 flex items-center justify-center text-foreground hover:bg-secondary transition-colors">
+              <MoreVertical className="h-4 w-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => setConfirmLeave(true)}
+                className="cursor-pointer text-destructive focus:text-destructive"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Leave group
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <UserMenu />
+        </div>
       </div>
 
       <div className="flex gap-2 px-4 py-3 bg-header/50 border-b border-border/30">
@@ -249,6 +309,25 @@ export default function GroupPage() {
           }}
         />
       )}
+
+      <AlertDialog open={confirmLeave} onOpenChange={setConfirmLeave}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave this group?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {group.createdBy === user?.id
+                ? 'You created this group. Ownership will transfer to the longest-standing member, or the group will be deleted if you are the last member.'
+                : 'You can rejoin later with the invite link.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={leaving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLeave} disabled={leaving}>
+              {leaving ? 'Leaving...' : 'Leave group'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

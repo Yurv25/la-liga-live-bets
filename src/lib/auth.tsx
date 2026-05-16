@@ -24,6 +24,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
       setSession(sess);
       setLoading(false);
+      // Backfill profile display_name for older accounts (deferred to avoid recursion)
+      if (sess?.user) {
+        const u = sess.user;
+        const name =
+          (u.user_metadata?.full_name as string | undefined) ??
+          (u.user_metadata?.name as string | undefined) ??
+          u.email ??
+          '';
+        setTimeout(() => {
+          supabase
+            .from('profiles')
+            .upsert({ user_id: u.id, display_name: name }, { onConflict: 'user_id' })
+            .then(() => {});
+        }, 0);
+      }
     });
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
