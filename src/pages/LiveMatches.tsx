@@ -4,20 +4,29 @@ import { Match } from '@/lib/types';
 import { fetchMyPredictions } from '@/lib/storage';
 import { useAuth } from '@/lib/auth';
 import { useFilteredMatches } from '@/hooks/useMatches';
+import { COMPETITIONS } from '@/lib/competitions';
 import MatchCard from '@/components/MatchCard';
 import PredictionModal from '@/components/PredictionModal';
 import UserMenu from '@/components/UserMenu';
-import { Trophy, Zap } from 'lucide-react';
+import DateStrip from '@/components/DateStrip';
+import { Calendar, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-type Tab = 'all' | 'live';
+type Tab = 'schedule' | 'live';
+
+function startOfDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
 
 export default function LiveMatches() {
-  const [tab, setTab] = useState<Tab>('all');
+  const [tab, setTab] = useState<Tab>('schedule');
+  const [selectedDate, setSelectedDate] = useState<Date>(() => startOfDay(new Date()));
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const { user, displayName } = useAuth();
 
-  const { matches: filteredMatches, loading, liveCount } = useFilteredMatches(tab);
+  const { allMatches, loading, liveCount } = useFilteredMatches('all');
 
   const { data: myPredictions = [], refetch } = useQuery({
     queryKey: ['my-predictions', user?.id],
@@ -31,8 +40,29 @@ export default function LiveMatches() {
     return map;
   }, [myPredictions]);
 
+  const liveMatches = useMemo(
+    () => allMatches.filter((m) => m.status === 'LIVE' || m.status === 'HT'),
+    [allMatches]
+  );
+
+  const dayMatches = useMemo(() => {
+    const target = selectedDate.toDateString();
+    return allMatches.filter((m) => new Date(m.startTime).toDateString() === target);
+  }, [allMatches, selectedDate]);
+
+  const grouped = useMemo(() => {
+    return COMPETITIONS
+      .map((c) => ({
+        competition: c,
+        matches: dayMatches
+          .filter((m) => m.leagueId === c.leagueId)
+          .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
+      }))
+      .filter((g) => g.matches.length > 0);
+  }, [dayMatches]);
+
   const tabs: { key: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
-    { key: 'all', label: 'All', icon: <Trophy className="h-4 w-4" /> },
+    { key: 'schedule', label: 'Schedule', icon: <Calendar className="h-4 w-4" /> },
     { key: 'live', label: 'Live', icon: <Zap className="h-4 w-4" />, count: liveCount },
   ];
 
@@ -63,7 +93,6 @@ export default function LiveMatches() {
           </span>
         </div>
         <div className="flex items-center gap-3 min-w-0">
-          <span className="text-xs text-muted-foreground font-medium hidden sm:inline">La Liga</span>
           {displayName && (
             <span className="text-sm font-medium text-header-foreground truncate max-w-[140px]">
               {displayName}
@@ -97,24 +126,64 @@ export default function LiveMatches() {
         ))}
       </div>
 
+      {tab === 'schedule' && (
+        <DateStrip selected={selectedDate} onSelect={setSelectedDate} />
+      )}
+
       {loading && (
         <div className="flex justify-center py-4">
           <div className="h-5 w-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
         </div>
       )}
 
-      <div className="p-4 space-y-3 max-w-lg mx-auto">
+      <div className="p-4 space-y-6 max-w-lg mx-auto">
         <AnimatePresence mode="wait">
-          {filteredMatches.length === 0 ? (
+          {tab === 'live' ? (
+            liveMatches.length === 0 ? (
+              <motion.p
+                key="no-live"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center text-muted-foreground py-12 text-sm"
+              >
+                No live matches right now
+              </motion.p>
+            ) : (
+              <motion.div key="live-list" className="space-y-3">
+                {liveMatches.map((m, i) => renderMatchCard(m, i))}
+              </motion.div>
+            )
+          ) : grouped.length === 0 ? (
             <motion.p
+              key="no-day"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="text-center text-muted-foreground py-12 text-sm"
             >
-              {tab === 'live' ? 'No live matches right now' : 'No matches found'}
+              No matches today
             </motion.p>
           ) : (
-            filteredMatches.map((match, i) => renderMatchCard(match, i))
+            <motion.div key="schedule-list" className="space-y-6">
+              {grouped.map(({ competition, matches }) => (
+                <div key={competition.id} className="space-y-3">
+                  <div className="flex items-center gap-2 px-1">
+                    <img
+                      src={competition.logo}
+                      alt={competition.name}
+                      className="h-6 w-6 object-contain"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      {competition.name}
+                    </span>
+                    <div className="flex-1 h-px bg-border/40 ml-2" />
+                  </div>
+                  <div className="space-y-3">
+                    {matches.map((m, i) => renderMatchCard(m, i))}
+                  </div>
+                </div>
+              ))}
+            </motion.div>
           )}
         </AnimatePresence>
       </div>

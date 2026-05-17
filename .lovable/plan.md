@@ -1,44 +1,51 @@
-# Group & UX improvements
+# Schedule tab on LiveMatches
 
-## 1. Share invite link from inside the group page
-- `GroupPage.tsx`: add a "Share" button in the header that copies `${origin}/group/${group.joinCode}` to clipboard with a sonner toast. Reuse the copy logic pattern from `CreateGroup.tsx`.
-- `CreateGroup.tsx` already shows the share link after creation — keep as-is.
+Scope is limited to `src/pages/LiveMatches.tsx` plus one small new component for the date strip. No API, polling, store, or edge function changes.
 
-## 2. Leave group + ownership transfer
-- **DB migration file** `supabase/migrations/002_leave_group.sql` (you run it manually in the Supabase SQL editor, same as `001_initial_schema.sql`):
-  - Define `public.leave_group(p_group_id uuid)` as `SECURITY DEFINER`:
-    1. Delete the caller (`auth.uid()`) from `group_members`.
-    2. If caller was `groups.created_by`:
-       - Find the oldest remaining member by `joined_at asc`.
-       - If found → `update groups set created_by = <that user>`.
-       - If none → `delete from groups where id = p_group_id` (cascades members + predictions).
-  - If the `001` trigger `handle_new_user` doesn't already populate `profiles.display_name` from `user_metadata.full_name | name | email`, update it here in the same file.
-  - `grant execute on function public.leave_group(uuid) to authenticated;`
-- **Storage layer** (`src/lib/storage.ts`): add `leaveGroup(groupId)` calling `supabase.rpc('leave_group', { p_group_id: groupId })`.
-- **UI** (`GroupPage.tsx`): add "Leave group" action (kebab menu in header) with an `AlertDialog` confirm. On success → invalidate `['groups']` and `navigate('/groups')`.
+## Changes
 
-## 3. Leaderboard shows real display names
-- `loadMembers` currently falls back to `id.slice(0,6)` when a profile row is missing. Two fixes:
-  - The `002` migration above ensures the signup trigger fills `display_name` for new users.
-  - In `auth.tsx`, on every successful sign-in upsert the current user's `profiles` row with the resolved `displayName` to backfill older accounts.
-- `GroupPage.tsx` already renders `member.displayName` — no further change needed once names propagate.
+### 1. Tabs
+- Replace `Tab` type: `'schedule' | 'live'`.
+- Default `useState<Tab>('schedule')`.
+- Tab order: Schedule (Calendar icon), Live (Zap icon, with live count badge).
+- Remove the `All` tab entirely.
 
-## 4. Header shows current user's display name/avatar
-- `LiveMatches.tsx` header: render `{displayName}` (truncated) next to `<UserMenu />`.
-- `UserMenu.tsx`: if `user.user_metadata.avatar_url` exists, render an `<img>` inside the trigger circle (fallback to the initial letter on missing/error).
+### 2. Date strip (new component `src/components/DateStrip.tsx`)
+- Horizontal scrollable row, 11 days: today − 5 … today + 5.
+- Each pill shows weekday abbr + day number (`Mon 12`) via `toLocaleDateString`.
+- Selected day uses `bg-primary text-primary-foreground` with subtle glow; others `bg-secondary text-muted-foreground`.
+- Today gets a small dot indicator under the label when not selected.
+- Props: `selected: Date`, `onSelect: (d: Date) => void`.
+- Container: `flex gap-2 overflow-x-auto px-4 py-3 scrollbar-none`, snap-x for nicer mobile feel.
+- On mount, scroll the "today" pill into view (centered) via a ref.
 
-## 5. Fix duplicate match IDs warning
-The edge function merges live into events then `.push`es any live not found in events — id type mismatches (number vs string) can produce duplicates.
-- `supabase/functions/laliga-matches/index.ts`: deduplicate at the end with a `Map<string, Match>` keyed by `String(m.id)` before responding.
-- Belt-and-braces in `matchStore.ts.fetchMatches`: dedupe by id before `setState({ matches })` so the React `key` warning cannot recur.
+### 3. Schedule view logic (inline in LiveMatches.tsx)
+- Local state: `selectedDate: Date` (init `new Date()` truncated to local midnight).
+- Derive `dayMatches` from `allMatches` from `useFilteredMatches` (use existing hook, ignore its `matches` for schedule tab and use `allMatches` instead):
+  - Same-day filter using local `toDateString()` comparison against `match.startTime`.
+- Group by competition using a hardcoded order pulled from `src/lib/competitions.ts` (`COMPETITIONS`): La Liga (3), then World Cup (27). Skip groups with zero matches.
+- Within each group, sort by `startTime` ascending.
 
-## Prerequisites (manual)
-1. Run `supabase/migrations/002_leave_group.sql` in your Supabase SQL editor after I create it.
+### 4. Group header
+- Row with league logo `<img src={`https://sports.bzzoiro.com/img/league/${leagueId}/`} />` (h-6 w-6, rounded, with simple onError → hide), league name in `text-sm font-semibold text-muted-foreground uppercase tracking-wide`, divider line.
+
+### 5. Empty state
+- If `dayMatches.length === 0`: centered `No matches today` message (reuse existing styling from the current empty state).
+
+### 6. Live tab
+- Unchanged behavior: shows live + HT matches via existing filter logic.
+
+### 7. Cleanup
+- Remove `tab === 'all'` branches.
+- Keep `MatchCard`, `PredictionModal`, `UserMenu`, header, polling, and prediction query intact.
 
 ## Technical notes
-- No new dependencies, no routing changes.
-- `leave_group` is `SECURITY DEFINER` so a leaving creator can rewrite `created_by` without an UPDATE policy for non-creators.
+
+- No new dependencies.
+- All filtering/grouping is `useMemo` over `allMatches` and `selectedDate`.
+- Match cards remain wrapped in the same Framer Motion fade-in.
+- `leagueId` is already on the `Match` type and populated by the edge function/store.
 
 ## Out of scope
-- Kicking other members, renaming groups, group settings page.
-- Avatar upload (only use OAuth-provided `avatar_url`).
+- Changing edge functions, store, polling, types, MatchCard, or any other page.
+- Swipe gestures on the date strip (native scroll only).
