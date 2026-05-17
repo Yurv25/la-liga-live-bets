@@ -12,6 +12,7 @@ export interface Match {
   homeTeamId?: number | null;
   awayTeamId?: number | null;
   round?: number | null;
+  leagueId?: number | null;
 }
 
 export interface Prediction {

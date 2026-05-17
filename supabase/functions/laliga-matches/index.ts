@@ -8,6 +8,7 @@ const corsHeaders = {
 
 const BASE_URL = "https://sports.bzzoiro.com/api";
 const LA_LIGA_ID = 3;
+const WORLD_CUP_ID = 27;
 const PAGE_SIZE = 200;
 const MAX_PAGES = 20; // safety cap (4000 matches)
 
@@ -52,6 +53,7 @@ function mapMatch(ev: any) {
     homeLogo: teamLogoUrl(homeTeamId),
     awayLogo: teamLogoUrl(awayTeamId),
     round: ev.round_number ?? null,
+    leagueId: ev.league_id ?? null,
   };
 }
 
@@ -72,19 +74,42 @@ Deno.serve(async (req) => {
 
   try {
     // Fetch first page + live in parallel
-    const [firstPageRes, liveRes] = await Promise.all([
-      fetch(
-        `${BASE_URL}/v2/events/?league_id=${LA_LIGA_ID}&season_id=294&limit=${PAGE_SIZE}&offset=0`,
-        { headers }
-      ),
-      fetch(`${BASE_URL}/v2/events/live/?league_id=${LA_LIGA_ID}&season_id=294`, { headers }),
+    const [firstPageRes, wcFirstPageRes, liveRes, wcLiveRes] = await Promise.all([
+      fetch(`${BASE_URL}/v2/events/?league_id=${LA_LIGA_ID}&season_id=294&limit=${PAGE_SIZE}&offset=0`, { headers }),
+      fetch(`${BASE_URL}/v2/events/?league_id=${WORLD_CUP_ID}&limit=${PAGE_SIZE}&offset=0`, { headers }),
+      fetch(`${BASE_URL}/v2/events/live/?league_id=${LA_LIGA_ID}`, { headers }),
+      fetch(`${BASE_URL}/v2/events/live/?league_id=${WORLD_CUP_ID}`, { headers }),
     ]);
 
     if (!firstPageRes.ok) throw new Error(`Events API: ${firstPageRes.status}`);
+    if (!wcFirstPageRes.ok) throw new Error(`WC Events API: ${wcFirstPageRes.status}`);
     if (!liveRes.ok) throw new Error(`Live API: ${liveRes.status}`);
+    if (!wcLiveRes.ok) throw new Error(`WC Live API: ${wcLiveRes.status}`);
 
     const firstPage = await firstPageRes.json();
+    const wcFirstPage = await wcFirstPageRes.json();
+    const wcResults: any[] = [...(wcFirstPage.results ?? [])];
+
+    const wcTotalCount: number = wcFirstPage.count ?? 0;
+    const wcTotalPages = Math.min(MAX_PAGES, Math.ceil(wcTotalCount / PAGE_SIZE));
+
+    if (wcTotalPages > 1) {
+      const wcOffsets: number[] = [];
+      for (let p = 1; p < wcTotalPages; p++) wcOffsets.push(p * PAGE_SIZE);
+      const wcPages = await Promise.all(
+        wcOffsets.map((offset) =>
+          fetch(
+            `${BASE_URL}/v2/events/?league_id=${WORLD_CUP_ID}&limit=${PAGE_SIZE}&offset=${offset}`,
+            { headers }
+          ).then((r) => (r.ok ? r.json() : { results: [] }))
+        )
+      );
+      for (const pg of wcPages) {
+        if (Array.isArray(pg.results)) wcResults.push(...pg.results);
+      }
+    }
     const liveData = await liveRes.json();
+    const wcLiveData = await wcLiveRes.json();
 
     const totalCount: number = firstPage.count ?? 0;
     const allResults: any[] = [...(firstPage.results ?? [])];
@@ -111,9 +136,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    const liveEvents: any[] = liveData.events ?? [];
+    const liveEvents: any[] = [
+      ...(liveData.events ?? []),
+      ...(wcLiveData.events ?? []),
+    ];
 
-    const mappedEvents = allResults.map((ev: any) => mapMatch(ev));
+    const mappedEvents = [...allResults, ...wcResults].map((ev: any) => mapMatch(ev));
     const mappedLive = liveEvents.map((m: any) => mapMatch(m));
 
     // Merge: live overrides scheduled by id

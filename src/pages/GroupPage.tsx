@@ -68,6 +68,13 @@ export default function GroupPage() {
     enabled: !!code && !!user,
   });
 
+  const competitionMatches = useMemo(() => {
+    if (!group) return matches;
+    if (group.competitionId === 'laliga') return matches.filter(m => m.leagueId === 3);
+    if (group.competitionId === 'worldcup') return matches.filter(m => m.leagueId === 27);
+    return matches;
+  }, [matches, group]);
+
   const { data: groupPredictions = [] } = useQuery({
     queryKey: ['predictions', group?.id],
     queryFn: () => (group ? fetchGroupPredictions(group.id) : Promise.resolve([] as Prediction[])),
@@ -85,7 +92,7 @@ export default function GroupPage() {
 
   const roundGroups = useMemo(() => {
     const map = new Map<number, Match[]>();
-    for (const m of matches) {
+    for (const m of competitionMatches) {
       if (typeof m.round !== 'number') continue;
       if (!map.has(m.round)) map.set(m.round, []);
       map.get(m.round)!.push(m);
@@ -98,7 +105,7 @@ export default function GroupPage() {
           (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
         ),
       }));
-  }, [matches]);
+  }, [competitionMatches]);
 
   const currentRound = useMemo(() => {
     if (roundGroups.length === 0) return null;
@@ -155,7 +162,7 @@ export default function GroupPage() {
       const memberPreds = groupPredictions.filter((p) => p.userId === member.userId);
       let points = 0;
       memberPreds.forEach((pred) => {
-        const match = matches.find((m) => m.id === pred.matchId);
+        const match = competitionMatches.find((m) => m.id === pred.matchId);
         if (match) {
           points += calculatePoints(pred, match.homeScore, match.awayScore, match.status);
         }
@@ -180,7 +187,8 @@ export default function GroupPage() {
             <span className="text-lg font-bold font-display text-header-foreground block">{group.name}</span>
             {competition && (
               <span className="text-xs text-muted-foreground">
-                {competition.logo} {competition.name}
+                <img src={competition.logo} alt={competition.name} className="h-4 w-4 object-contain inline mr-1" />
+                  {competition.name}
               </span>
             )}
           </div>

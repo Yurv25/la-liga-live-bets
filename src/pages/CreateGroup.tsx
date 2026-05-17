@@ -80,7 +80,7 @@ export default function CreateGroup() {
                     : 'border-border/50 bg-card text-muted-foreground hover:border-border hover:text-foreground'
                 }`}
               >
-                <span className="text-lg">{comp.logo}</span>
+                <img src={comp.logo} alt={comp.name} className="h-6 w-6 object-contain" />
                 <div className="min-w-0">
                   <p className="text-sm font-semibold truncate">{comp.name}</p>
                   <p className="text-[10px] text-muted-foreground">{comp.country}</p>
