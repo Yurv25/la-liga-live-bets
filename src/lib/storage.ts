@@ -93,16 +93,47 @@ export async function createGroup(
   }
   return null;
 }
-
+/*
 export async function joinGroupByCode(code: string): Promise<Group | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
   const group = await fetchGroupByCode(code);
   if (!group) return null;
-  await supabase
+  const { error } = await supabase
     .from('group_members')
-    .upsert({ group_id: group.id, user_id: user.id }, { onConflict: 'group_id,user_id' });
+    .insert({ group_id: group.id, user_id: user.id });
+    // ignore duplicate key error (user already a member)
+    if (error && !error.message.includes('duplicate')) {
+      console.error('joinGroup error:', error);
+    }
   return await fetchGroupByCode(code);
+}*/
+
+export async function joinGroupByCode(code: string): Promise<Group | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const group = await fetchGroupByCode(code);
+  if (!group) return null;
+
+  const { data: existing } = await supabase
+    .from('group_members')
+    .select('group_id')
+    .eq('group_id', group.id)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (!existing) {
+    const { error } = await supabase
+      .from('group_members')
+      .insert({ group_id: group.id, user_id: user.id });
+
+    if (error) {
+      throw error;
+    }
+  }
+
+  return group;
 }
 
 export async function leaveGroup(groupId: string): Promise<void> {
