@@ -131,6 +131,27 @@ export default function GroupPage() {
     return sortedCompetitionMatches.slice(currentMatchIndex + 1);
   }, [sortedCompetitionMatches, currentMatch, currentMatchIndex]);
 
+  const finishedMatchGroups = useMemo(() => {
+    const map = new Map<number, Match[]>();
+    for (const match of pastMatches) {
+      if (match.status !== 'FT') continue;
+      const round = typeof match.round === 'number' ? match.round : 0;
+      if (!map.has(round)) map.set(round, []);
+      map.get(round)!.push(match);
+    }
+
+    return Array.from(map.entries())
+      .map(([round, matches]) => ({
+        round,
+        matches: matches.slice().sort(
+          (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+        ),
+      }))
+      .sort((a, b) => b.round - a.round);
+  }, [pastMatches]);
+
+  const finishedMatchCount = finishedMatchGroups.reduce((count, group) => count + group.matches.length, 0);
+
   const currentMatchId = currentMatch?.id ?? null;
 
   useEffect(() => {
@@ -430,202 +451,75 @@ export default function GroupPage() {
                 : 'Member predictions'}
             </DialogTitle>
             <DialogDescription>
-              Showing {competition?.name ?? 'competition'} picks for this group. {selectedMemberPredictions.length}/{competitionMatchCount} submitted.
+              Showing {competition?.name ?? 'competition'} finished match predictions for this group.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3 max-h-[60vh] overflow-y-auto py-2">
-            {competitionMatches.length === 0 ? (
-              <p className="text-center text-sm text-muted-foreground py-8">No matches found for this competition.</p>
+            {finishedMatchCount === 0 ? (
+              <p className="text-center text-sm text-muted-foreground py-8">No finished matches yet.</p>
             ) : (
-              <>
-                {pastMatches.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between px-3 py-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                      <span>Past matches</span>
-                      <span>{pastMatches.length}</span>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between px-3 py-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                  <span>Finished matches</span>
+                  <span>{finishedMatchCount}</span>
+                </div>
+                {finishedMatchGroups.map((group) => (
+                  <div key={group.round} className="space-y-3">
+                    <div className="px-3 py-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      Round {group.round === 0 ? '?' : group.round}
                     </div>
-                    {pastMatches.map((match) => {
-                      const memberPrediction = selectedMemberPredictionMap.get(match.id);
-                      const myPrediction = predictionsMap.get(match.id);
-                      const actualResult = match.status !== 'NS' ? `${match.homeScore}–${match.awayScore}` : null;
-                      const resultLabel = match.status === 'FT' ? 'Result' : match.status === 'LIVE' || match.status === 'HT' ? 'Score' : null;
-                      return (
-                        <div
-                          key={match.id}
-                          className="rounded-2xl border border-border/70 bg-card p-4 sm:p-4"
-                        >
-                          <div className="flex items-center gap-3">
-                            <img src={match.homeLogo} alt={match.homeTeam} className="h-8 w-8 rounded-md object-contain" />
-                            <div className="min-w-0 flex-1 space-y-1">
-                              <p className="text-sm font-semibold truncate">
-                                {match.homeTeam} vs {match.awayTeam}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(match.startTime).toLocaleString()} • {match.status}
-                              </p>
-                            </div>
-                            <img src={match.awayLogo} alt={match.awayTeam} className="h-8 w-8 rounded-md object-contain" />
-                          </div>
-                          <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="space-y-1">
-                              {actualResult ? (
-                                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                                  {resultLabel}
-                                </p>
-                              ) : null}
-                              {actualResult ? (
-                                <p className="font-semibold text-base">{actualResult}</p>
-                              ) : null}
-                            </div>
-                            <div className="text-right">
-                              {memberPrediction ? (
-                                <p className="text-sm font-semibold">
-                                  Pick: {memberPrediction.homeScore}–{memberPrediction.awayScore}
-                                </p>
-                              ) : (
-                                <p className="text-sm text-muted-foreground">No prediction</p>
-                              )}
-                              {!selectedMember?.userId || selectedMember.userId !== user?.id ? (
-                                <p className="text-xs text-muted-foreground">
-                                  You: {myPrediction ? `${myPrediction.homeScore}–${myPrediction.awayScore}` : 'No prediction'}
-                                </p>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {currentMatch ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between px-3 py-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                      <span>Current fixture</span>
-                      <span>{currentMatch.status === 'NS' ? 'Upcoming' : currentMatch.status}</span>
-                    </div>
-                    {(() => {
-                      const match = currentMatch;
-                      const memberPrediction = selectedMemberPredictionMap.get(match.id);
-                      const myPrediction = predictionsMap.get(match.id);
-                      const actualResult = match.status !== 'NS' ? `${match.homeScore}–${match.awayScore}` : null;
-                      const resultLabel = match.status === 'FT' ? 'Result' : match.status === 'LIVE' || match.status === 'HT' ? 'Score' : null;
-                      return (
-                        <div
-                          key={match.id}
-                          ref={selectedMemberCurrentMatchRef}
-                          className="rounded-2xl border border-primary/30 bg-card p-4 sm:p-4 shadow-sm shadow-primary/10"
-                        >
-                          <div className="flex items-center gap-3">
-                            <img src={match.homeLogo} alt={match.homeTeam} className="h-8 w-8 rounded-md object-contain" />
-                            <div className="min-w-0 flex-1 space-y-1">
-                              <div className="flex items-center gap-2">
+                    <div className="space-y-3">
+                      {group.matches.map((match) => {
+                        const memberPrediction = selectedMemberPredictionMap.get(match.id);
+                        const myPrediction = predictionsMap.get(match.id);
+                        const actualResult = `${match.homeScore}–${match.awayScore}`;
+                        return (
+                          <div
+                            key={match.id}
+                            className="rounded-2xl border border-border/70 bg-card p-4 sm:p-4"
+                          >
+                            <div className="flex items-center gap-3">
+                              <img src={match.homeLogo} alt={match.homeTeam} className="h-8 w-8 rounded-md object-contain" />
+                              <div className="min-w-0 flex-1 space-y-1">
                                 <p className="text-sm font-semibold truncate">
                                   {match.homeTeam} vs {match.awayTeam}
                                 </p>
-                                <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
-                                  CURRENT
-                                </span>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(match.startTime).toLocaleString()}
+                                </p>
                               </div>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(match.startTime).toLocaleString()} • {match.status}
-                              </p>
+                              <img src={match.awayLogo} alt={match.awayTeam} className="h-8 w-8 rounded-md object-contain" />
                             </div>
-                            <img src={match.awayLogo} alt={match.awayTeam} className="h-8 w-8 rounded-md object-contain" />
-                          </div>
-                          <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="space-y-1">
-                              {actualResult ? (
+                            <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="space-y-1">
                                 <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                                  {resultLabel}
+                                  Result
                                 </p>
-                              ) : null}
-                              {actualResult ? (
                                 <p className="font-semibold text-base">{actualResult}</p>
-                              ) : null}
-                            </div>
-                            <div className="text-right">
-                              {memberPrediction ? (
-                                <p className="text-sm font-semibold">
-                                  Pick: {memberPrediction.homeScore}–{memberPrediction.awayScore}
-                                </p>
-                              ) : (
-                                <p className="text-sm text-muted-foreground">No prediction</p>
-                              )}
-                              {!selectedMember?.userId || selectedMember.userId !== user?.id ? (
-                                <p className="text-xs text-muted-foreground">
-                                  You: {myPrediction ? `${myPrediction.homeScore}–${myPrediction.awayScore}` : 'No prediction'}
-                                </p>
-                              ) : null}
+                              </div>
+                              <div className="text-right">
+                                {memberPrediction ? (
+                                  <p className="text-sm font-semibold">
+                                    Pick: {memberPrediction.homeScore}–{memberPrediction.awayScore}
+                                  </p>
+                                ) : (
+                                  <p className="text-sm text-muted-foreground">No prediction</p>
+                                )}
+                                {!selectedMember?.userId || selectedMember.userId !== user?.id ? (
+                                  <p className="text-xs text-muted-foreground">
+                                    You: {myPrediction ? `${myPrediction.homeScore}–${myPrediction.awayScore}` : 'No prediction'}
+                                  </p>
+                                ) : null}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                ) : null}
-
-                {futureMatches.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between px-3 py-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                      <span>Upcoming matches</span>
-                      <span>{futureMatches.length}</span>
+                        );
+                      })}
                     </div>
-                    {futureMatches.map((match) => {
-                      const memberPrediction = selectedMemberPredictionMap.get(match.id);
-                      const myPrediction = predictionsMap.get(match.id);
-                      const actualResult = match.status !== 'NS' ? `${match.homeScore}–${match.awayScore}` : null;
-                      const resultLabel = match.status === 'FT' ? 'Result' : match.status === 'LIVE' || match.status === 'HT' ? 'Score' : null;
-                      return (
-                        <div
-                          key={match.id}
-                          className="rounded-2xl border border-border/70 bg-card p-4 sm:p-4"
-                        >
-                          <div className="flex items-center gap-3">
-                            <img src={match.homeLogo} alt={match.homeTeam} className="h-8 w-8 rounded-md object-contain" />
-                            <div className="min-w-0 flex-1 space-y-1">
-                              <p className="text-sm font-semibold truncate">
-                                {match.homeTeam} vs {match.awayTeam}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(match.startTime).toLocaleString()} • {match.status}
-                              </p>
-                            </div>
-                            <img src={match.awayLogo} alt={match.awayTeam} className="h-8 w-8 rounded-md object-contain" />
-                          </div>
-                          <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="space-y-1">
-                              {actualResult ? (
-                                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                                  {resultLabel}
-                                </p>
-                              ) : null}
-                              {actualResult ? (
-                                <p className="font-semibold text-base">{actualResult}</p>
-                              ) : null}
-                            </div>
-                            <div className="text-right">
-                              {memberPrediction ? (
-                                <p className="text-sm font-semibold">
-                                  Pick: {memberPrediction.homeScore}–{memberPrediction.awayScore}
-                                </p>
-                              ) : (
-                                <p className="text-sm text-muted-foreground">No prediction</p>
-                              )}
-                              {!selectedMember?.userId || selectedMember.userId !== user?.id ? (
-                                <p className="text-xs text-muted-foreground">
-                                  You: {myPrediction ? `${myPrediction.homeScore}–${myPrediction.awayScore}` : 'No prediction'}
-                                </p>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
                   </div>
-                )}
-              </>
+                ))}
+              </div>
             )}
           </div>
 
