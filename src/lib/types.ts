@@ -13,6 +13,7 @@ export interface Match {
   awayTeamId?: number | null;
   round?: number | null;
   leagueId?: number | null;
+  seasonId?: number | null;
 }
 
 export interface Prediction {

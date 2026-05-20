@@ -11,6 +11,9 @@ const LA_LIGA_ID = 3;
 const WORLD_CUP_ID = 27;
 const PAGE_SIZE = 200;
 const MAX_PAGES = 20; // safety cap (4000 matches)
+const LA_LIGA_SEASON_ID = 294;
+const WORLD_CUP_GROUP_SEASON_ID = 383;
+const WORLD_CUP_KNOCKOUT_SEASON_ID = 188;
 
 function normalizeStatus(
   status: string | undefined,
@@ -54,6 +57,7 @@ function mapMatch(ev: any) {
     awayLogo: teamLogoUrl(awayTeamId),
     round: ev.round_number ?? null,
     leagueId: ev.league_id ?? null,
+    seasonId: ev.season_id ?? null,
   };
 }
 
@@ -74,32 +78,43 @@ Deno.serve(async (req) => {
 
   try {
     // Fetch first page + live in parallel
-    const [firstPageRes, wcFirstPageRes, liveRes, wcLiveRes] = await Promise.all([
-      fetch(`${BASE_URL}/v2/events/?league_id=${LA_LIGA_ID}&season_id=294&limit=${PAGE_SIZE}&offset=0`, { headers }),
-      fetch(`${BASE_URL}/v2/events/?league_id=${WORLD_CUP_ID}&limit=${PAGE_SIZE}&offset=0`, { headers }),
+    const [firstPageRes, wcGroupFirstPageRes, wcKnockoutFirstPageRes, liveRes, wcLiveRes] = await Promise.all([
+      fetch(`${BASE_URL}/v2/events/?league_id=${LA_LIGA_ID}&season_id=${LA_LIGA_SEASON_ID}&limit=${PAGE_SIZE}&offset=0`, { headers }),
+      fetch(`${BASE_URL}/v2/events/?league_id=${WORLD_CUP_ID}&season_id=${WORLD_CUP_GROUP_SEASON_ID}&limit=${PAGE_SIZE}&offset=0`, { headers }),
+      fetch(`${BASE_URL}/v2/events/?league_id=${WORLD_CUP_ID}&season_id=${WORLD_CUP_KNOCKOUT_SEASON_ID}&limit=${PAGE_SIZE}&offset=0`, { headers }),
       fetch(`${BASE_URL}/v2/events/live/?league_id=${LA_LIGA_ID}`, { headers }),
       fetch(`${BASE_URL}/v2/events/live/?league_id=${WORLD_CUP_ID}`, { headers }),
     ]);
 
     if (!firstPageRes.ok) throw new Error(`Events API: ${firstPageRes.status}`);
-    if (!wcFirstPageRes.ok) throw new Error(`WC Events API: ${wcFirstPageRes.status}`);
+    if (!wcGroupFirstPageRes.ok) throw new Error(`WC Group Events API: ${wcGroupFirstPageRes.status}`);
+    if (!wcKnockoutFirstPageRes.ok) throw new Error(`WC Knockout Events API: ${wcKnockoutFirstPageRes.status}`);
     if (!liveRes.ok) throw new Error(`Live API: ${liveRes.status}`);
     if (!wcLiveRes.ok) throw new Error(`WC Live API: ${wcLiveRes.status}`);
 
     const firstPage = await firstPageRes.json();
-    const wcFirstPage = await wcFirstPageRes.json();
-    const wcResults: any[] = [...(wcFirstPage.results ?? [])];
+    const wcGroupFirstPage = await wcGroupFirstPageRes.json();
+    const wcKnockoutFirstPage = await wcKnockoutFirstPageRes.json();
 
-    const wcTotalCount: number = wcFirstPage.count ?? 0;
-    const wcTotalPages = Math.min(MAX_PAGES, Math.ceil(wcTotalCount / PAGE_SIZE));
+    const wcResults: any[] = [
+      ...(wcGroupFirstPage.results ?? []),
+      ...(wcKnockoutFirstPage.results ?? []),
+    ];
 
-    if (wcTotalPages > 1) {
+    const wcGroupTotalCount: number = wcGroupFirstPage.count ?? 0;
+    const wcKnockoutTotalCount: number = wcKnockoutFirstPage.count ?? 0;
+
+    const wcGroupTotalPages = Math.min(MAX_PAGES, Math.ceil(wcGroupTotalCount / PAGE_SIZE));
+    const wcKnockoutTotalPages = Math.min(MAX_PAGES, Math.ceil(wcKnockoutTotalCount / PAGE_SIZE));
+
+    //Paginate WC group stage
+    if (wcGroupTotalPages > 1) {
       const wcOffsets: number[] = [];
-      for (let p = 1; p < wcTotalPages; p++) wcOffsets.push(p * PAGE_SIZE);
+      for (let p = 1; p < wcGroupTotalPages; p++) wcOffsets.push(p * PAGE_SIZE);
       const wcPages = await Promise.all(
         wcOffsets.map((offset) =>
           fetch(
-            `${BASE_URL}/v2/events/?league_id=${WORLD_CUP_ID}&limit=${PAGE_SIZE}&offset=${offset}`,
+            `${BASE_URL}/v2/events/?league_id=${WORLD_CUP_ID}&season_id=${WORLD_CUP_GROUP_SEASON_ID}&limit=${PAGE_SIZE}&offset=${offset}`,
             { headers }
           ).then((r) => (r.ok ? r.json() : { results: [] }))
         )
@@ -108,9 +123,27 @@ Deno.serve(async (req) => {
         if (Array.isArray(pg.results)) wcResults.push(...pg.results);
       }
     }
+
+    //Paginate WC knockout stage
+    if (wcKnockoutTotalPages > 1) {
+      const wcOffsets: number[] = [];
+      for (let p = 1; p < wcKnockoutTotalPages; p++) wcOffsets.push(p * PAGE_SIZE);
+      const wcPages = await Promise.all(
+        wcOffsets.map((offset) =>
+          fetch(
+            `${BASE_URL}/v2/events/?league_id=${WORLD_CUP_ID}&season_id=${WORLD_CUP_KNOCKOUT_SEASON_ID}&limit=${PAGE_SIZE}&offset=${offset}`,
+            { headers }
+          ).then((r) => (r.ok ? r.json() : { results: [] }))
+        )
+      );
+      for (const pg of wcPages) {
+        if (Array.isArray(pg.results)) wcResults.push(...pg.results);
+      }
+    }
+
+
     const liveData = await liveRes.json();
     const wcLiveData = await wcLiveRes.json();
-
     const totalCount: number = firstPage.count ?? 0;
     const allResults: any[] = [...(firstPage.results ?? [])];
 
@@ -126,7 +159,7 @@ Deno.serve(async (req) => {
       const pages = await Promise.all(
         offsets.map((offset) =>
           fetch(
-            `${BASE_URL}/v2/events/?league_id=${LA_LIGA_ID}&season_id=294&limit=${PAGE_SIZE}&offset=${offset}`,
+            `${BASE_URL}/v2/events/?league_id=${LA_LIGA_ID}&season_id=${LA_LIGA_SEASON_ID}&limit=${PAGE_SIZE}&offset=${offset}`,
             { headers }
           ).then((r) => (r.ok ? r.json() : { results: [] }))
         )

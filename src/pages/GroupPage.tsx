@@ -26,6 +26,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 
@@ -38,6 +47,7 @@ export default function GroupPage() {
   const { user, displayName } = useAuth();
   const [activeTab, setActiveTab] = useState<GroupTab>('leaderboard');
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
@@ -55,8 +65,6 @@ export default function GroupPage() {
     }
   };
 
-  const { allMatches: matches } = useFilteredMatches('all');
-
   // Auto-join then load
   const { data: group } = useQuery({
     queryKey: ['group', code],
@@ -68,18 +76,99 @@ export default function GroupPage() {
     enabled: !!code && !!user,
   });
 
+  const { allMatches: matches } = useFilteredMatches('all'); //group?.competitionId ?? 'laliga'
+
   const competitionMatches = useMemo(() => {
     if (!group) return matches;
-    if (group.competitionId === 'laliga') return matches.filter(m => m.leagueId === 3);
-    if (group.competitionId === 'worldcup') return matches.filter(m => m.leagueId === 27);
-    return matches;
+    const competition = COMPETITIONS.find((c) => c.id === group.competitionId);
+    if (!competition) return matches;
+    return matches.filter(
+      (m) => m.leagueId === competition.leagueId && 
+      competition.seasonIds.includes(m.seasonId ?? -1),
+    );
   }, [matches, group]);
+
+  const selectedMember = useMemo(
+    () => group?.members.find((m) => m.userId === selectedMemberId) ?? null,
+    [group, selectedMemberId],
+  );
+
+  const competitionMatchCount = competitionMatches.length;
+
+  const selectedMemberCurrentMatchRef = useRef<HTMLDivElement | null>(null);
+
+  const sortedCompetitionMatches = useMemo(() => {
+    return competitionMatches.slice().sort(
+      (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+    );
+  }, [competitionMatches]);
+
+  const currentMatchIndex = useMemo(() => {
+    const now = Date.now();
+    const liveMatch = sortedCompetitionMatches.find((m) => m.status === 'LIVE' || m.status === 'HT');
+    if (liveMatch) {
+      return sortedCompetitionMatches.findIndex((m) => m.id === liveMatch.id);
+    }
+    const nextMatchIndex = sortedCompetitionMatches.findIndex(
+      (m) => new Date(m.startTime).getTime() >= now && m.status === 'NS',
+    );
+    if (nextMatchIndex !== -1) return nextMatchIndex;
+    return sortedCompetitionMatches.length - 1;
+  }, [sortedCompetitionMatches]);
+
+  const currentMatch = useMemo(() => {
+    if (currentMatchIndex < 0 || currentMatchIndex >= sortedCompetitionMatches.length) return null;
+    return sortedCompetitionMatches[currentMatchIndex];
+  }, [sortedCompetitionMatches, currentMatchIndex]);
+
+  const pastMatches = useMemo(() => {
+    if (!currentMatch) return [] as Match[];
+    return sortedCompetitionMatches.slice(0, currentMatchIndex).slice().reverse();
+  }, [sortedCompetitionMatches, currentMatch, currentMatchIndex]);
+
+  const futureMatches = useMemo(() => {
+    if (!currentMatch) return sortedCompetitionMatches;
+    return sortedCompetitionMatches.slice(currentMatchIndex + 1);
+  }, [sortedCompetitionMatches, currentMatch, currentMatchIndex]);
+
+  const currentMatchId = currentMatch?.id ?? null;
+
+  useEffect(() => {
+    if (!selectedMemberId || !selectedMemberCurrentMatchRef.current) return;
+    requestAnimationFrame(() => {
+      selectedMemberCurrentMatchRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+  }, [selectedMemberId, currentMatchId]);
+
+  useEffect(() => {
+    if (!group) {
+      setSelectedMemberId(null);
+    }
+  }, [group]);
 
   const { data: groupPredictions = [] } = useQuery({
     queryKey: ['predictions', group?.id],
     queryFn: () => (group ? fetchGroupPredictions(group.id) : Promise.resolve([] as Prediction[])),
     enabled: !!group,
   });
+
+  const selectedMemberPredictions = useMemo(() => {
+    if (!selectedMemberId) return [] as Prediction[];
+    return groupPredictions.filter((p) => p.userId === selectedMemberId);
+  }, [groupPredictions, selectedMemberId]);
+
+  const selectedMemberPredictionMap = useMemo(
+    () => new Map(selectedMemberPredictions.map((p) => [p.matchId, p] as const)),
+    [selectedMemberPredictions],
+  );
+
+  const memberPredictionCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    groupPredictions.forEach((p) => {
+      counts.set(p.userId, (counts.get(p.userId) ?? 0) + 1);
+    });
+    return counts;
+  }, [groupPredictions]);
 
   const predictionsMap = useMemo(() => {
     const map = new Map<string, Prediction>();
@@ -93,9 +182,9 @@ export default function GroupPage() {
   const roundGroups = useMemo(() => {
     const map = new Map<number, Match[]>();
     for (const m of competitionMatches) {
-      if (typeof m.round !== 'number') continue;
-      if (!map.has(m.round)) map.set(m.round, []);
-      map.get(m.round)!.push(m);
+      const round = typeof m.round === 'number' ? m.round : 0;
+      if (!map.has(round)) map.set(round, []);
+      map.get(round)!.push(m);
     }
     return Array.from(map.entries())
       .sort((a, b) => a[0] - b[0])
@@ -110,18 +199,27 @@ export default function GroupPage() {
   const currentRound = useMemo(() => {
     if (roundGroups.length === 0) return null;
     const now = Date.now();
-    let bestRound = roundGroups[0].round;
-    let bestDiff = Infinity;
-    for (const g of roundGroups) {
-      for (const m of g.matches) {
-        const diff = Math.abs(new Date(m.startTime).getTime() - now);
-        if (diff < bestDiff) {
-          bestDiff = diff;
-          bestRound = g.round;
-        }
-      }
+    const allMatches = roundGroups.flatMap((g) => g.matches);
+    const liveMatch = allMatches.find((m) => m.status === 'LIVE' || m.status === 'HT');
+    if (liveMatch) {
+      return roundGroups.find((g) => g.matches.some((m) => m.id === liveMatch.id))?.round ?? roundGroups[0].round;
     }
-    return bestRound;
+
+    const upcoming = allMatches
+      .filter((m) => m.status === 'NS' && new Date(m.startTime).getTime() >= now)
+      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+    if (upcoming.length > 0) {
+      return roundGroups.find((g) => g.matches.some((m) => m.id === upcoming[0].id))?.round ?? roundGroups[0].round;
+    }
+
+    const finished = allMatches
+      .filter((m) => m.status === 'FT')
+      .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+    if (finished.length > 0) {
+      return roundGroups.find((g) => g.matches.some((m) => m.id === finished[0].id))?.round ?? roundGroups[roundGroups.length - 1].round;
+    }
+
+    return roundGroups[0].round;
   }, [roundGroups]);
 
   const roundRefs = useRef<Record<number, HTMLDivElement | null>>({});
@@ -243,29 +341,42 @@ export default function GroupPage() {
       <div className="p-4 max-w-lg mx-auto">
         {activeTab === 'leaderboard' && (
           <div className="space-y-2">
-            {leaderboard.map((member, i) => (
-              <motion.div
-                key={member.userId}
-                initial={{ opacity: 0, x: -12 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className={`flex items-center justify-between rounded-xl px-4 py-3 ${
-                  i === 0 ? 'bg-primary/10 border border-primary/20' : 'bg-card border border-border/50'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  {i === 0 ? (
-                    <Crown className="h-4 w-4 text-primary" />
-                  ) : (
-                    <span className="text-sm font-bold text-muted-foreground w-4 text-center">{i + 1}</span>
-                  )}
-                  <span className="font-semibold text-sm">
-                    {member.userId === user?.id ? 'You' : member.displayName}
-                  </span>
-                </div>
-                <span className="font-bold text-sm font-display">{member.points} pts</span>
-              </motion.div>
-            ))}
+            {leaderboard.map((member, i) => {
+              const memberPredictionCount = memberPredictionCounts.get(member.userId) ?? 0;
+              const isCurrentUser = member.userId === user?.id;
+              return (
+                <motion.button
+                  key={member.userId}
+                  type="button"
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  onClick={() => setSelectedMemberId(member.userId)}
+                  className={`w-full text-left rounded-xl px-4 py-3 transition-all ${
+                    i === 0 ? 'bg-primary/10 border border-primary/20' : 'bg-card border border-border/50'
+                  } ${!isCurrentUser ? 'hover:border-primary/40 hover:bg-primary/5 cursor-pointer' : ''}`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      {i === 0 ? (
+                        <Crown className="h-4 w-4 text-primary" />
+                      ) : (
+                        <span className="text-sm font-bold text-muted-foreground w-4 text-center">{i + 1}</span>
+                      )}
+                      <div>
+                        <div className="font-semibold text-sm">
+                          {isCurrentUser ? 'You' : member.displayName}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {memberPredictionCount}/{competitionMatchCount} picks
+                        </div>
+                      </div>
+                    </div>
+                    <span className="font-bold text-sm font-display">{member.points} pts</span>
+                  </div>
+                </motion.button>
+              );
+            })}
           </div>
         )}
 
@@ -282,7 +393,7 @@ export default function GroupPage() {
                   className="space-y-3 scroll-mt-8"
                 >
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">
-                    Round {round}
+                    Round {round === 0 ? '?' : round}
                     {round === currentRound && (
                       <span className="ml-2 text-[10px] font-bold text-primary">CURRENT</span>
                     )}
@@ -307,6 +418,224 @@ export default function GroupPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!selectedMemberId} onOpenChange={(open) => !open && setSelectedMemberId(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedMember
+                ? selectedMember.userId === user?.id
+                  ? 'Your predictions'
+                  : `${selectedMember.displayName}'s predictions`
+                : 'Member predictions'}
+            </DialogTitle>
+            <DialogDescription>
+              Showing {competition?.name ?? 'competition'} picks for this group. {selectedMemberPredictions.length}/{competitionMatchCount} submitted.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto py-2">
+            {competitionMatches.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground py-8">No matches found for this competition.</p>
+            ) : (
+              <>
+                {pastMatches.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between px-3 py-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      <span>Past matches</span>
+                      <span>{pastMatches.length}</span>
+                    </div>
+                    {pastMatches.map((match) => {
+                      const memberPrediction = selectedMemberPredictionMap.get(match.id);
+                      const myPrediction = predictionsMap.get(match.id);
+                      const actualResult = match.status !== 'NS' ? `${match.homeScore}–${match.awayScore}` : null;
+                      const resultLabel = match.status === 'FT' ? 'Result' : match.status === 'LIVE' || match.status === 'HT' ? 'Score' : null;
+                      return (
+                        <div
+                          key={match.id}
+                          className="rounded-2xl border border-border/70 bg-card p-4 sm:p-4"
+                        >
+                          <div className="flex items-center gap-3">
+                            <img src={match.homeLogo} alt={match.homeTeam} className="h-8 w-8 rounded-md object-contain" />
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <p className="text-sm font-semibold truncate">
+                                {match.homeTeam} vs {match.awayTeam}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(match.startTime).toLocaleString()} • {match.status}
+                              </p>
+                            </div>
+                            <img src={match.awayLogo} alt={match.awayTeam} className="h-8 w-8 rounded-md object-contain" />
+                          </div>
+                          <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="space-y-1">
+                              {actualResult ? (
+                                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                                  {resultLabel}
+                                </p>
+                              ) : null}
+                              {actualResult ? (
+                                <p className="font-semibold text-base">{actualResult}</p>
+                              ) : null}
+                            </div>
+                            <div className="text-right">
+                              {memberPrediction ? (
+                                <p className="text-sm font-semibold">
+                                  Pick: {memberPrediction.homeScore}–{memberPrediction.awayScore}
+                                </p>
+                              ) : (
+                                <p className="text-sm text-muted-foreground">No prediction</p>
+                              )}
+                              {!selectedMember?.userId || selectedMember.userId !== user?.id ? (
+                                <p className="text-xs text-muted-foreground">
+                                  You: {myPrediction ? `${myPrediction.homeScore}–${myPrediction.awayScore}` : 'No prediction'}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {currentMatch ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between px-3 py-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      <span>Current fixture</span>
+                      <span>{currentMatch.status === 'NS' ? 'Upcoming' : currentMatch.status}</span>
+                    </div>
+                    {(() => {
+                      const match = currentMatch;
+                      const memberPrediction = selectedMemberPredictionMap.get(match.id);
+                      const myPrediction = predictionsMap.get(match.id);
+                      const actualResult = match.status !== 'NS' ? `${match.homeScore}–${match.awayScore}` : null;
+                      const resultLabel = match.status === 'FT' ? 'Result' : match.status === 'LIVE' || match.status === 'HT' ? 'Score' : null;
+                      return (
+                        <div
+                          key={match.id}
+                          ref={selectedMemberCurrentMatchRef}
+                          className="rounded-2xl border border-primary/30 bg-card p-4 sm:p-4 shadow-sm shadow-primary/10"
+                        >
+                          <div className="flex items-center gap-3">
+                            <img src={match.homeLogo} alt={match.homeTeam} className="h-8 w-8 rounded-md object-contain" />
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold truncate">
+                                  {match.homeTeam} vs {match.awayTeam}
+                                </p>
+                                <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
+                                  CURRENT
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(match.startTime).toLocaleString()} • {match.status}
+                              </p>
+                            </div>
+                            <img src={match.awayLogo} alt={match.awayTeam} className="h-8 w-8 rounded-md object-contain" />
+                          </div>
+                          <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="space-y-1">
+                              {actualResult ? (
+                                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                                  {resultLabel}
+                                </p>
+                              ) : null}
+                              {actualResult ? (
+                                <p className="font-semibold text-base">{actualResult}</p>
+                              ) : null}
+                            </div>
+                            <div className="text-right">
+                              {memberPrediction ? (
+                                <p className="text-sm font-semibold">
+                                  Pick: {memberPrediction.homeScore}–{memberPrediction.awayScore}
+                                </p>
+                              ) : (
+                                <p className="text-sm text-muted-foreground">No prediction</p>
+                              )}
+                              {!selectedMember?.userId || selectedMember.userId !== user?.id ? (
+                                <p className="text-xs text-muted-foreground">
+                                  You: {myPrediction ? `${myPrediction.homeScore}–${myPrediction.awayScore}` : 'No prediction'}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                ) : null}
+
+                {futureMatches.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between px-3 py-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      <span>Upcoming matches</span>
+                      <span>{futureMatches.length}</span>
+                    </div>
+                    {futureMatches.map((match) => {
+                      const memberPrediction = selectedMemberPredictionMap.get(match.id);
+                      const myPrediction = predictionsMap.get(match.id);
+                      const actualResult = match.status !== 'NS' ? `${match.homeScore}–${match.awayScore}` : null;
+                      const resultLabel = match.status === 'FT' ? 'Result' : match.status === 'LIVE' || match.status === 'HT' ? 'Score' : null;
+                      return (
+                        <div
+                          key={match.id}
+                          className="rounded-2xl border border-border/70 bg-card p-4 sm:p-4"
+                        >
+                          <div className="flex items-center gap-3">
+                            <img src={match.homeLogo} alt={match.homeTeam} className="h-8 w-8 rounded-md object-contain" />
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <p className="text-sm font-semibold truncate">
+                                {match.homeTeam} vs {match.awayTeam}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(match.startTime).toLocaleString()} • {match.status}
+                              </p>
+                            </div>
+                            <img src={match.awayLogo} alt={match.awayTeam} className="h-8 w-8 rounded-md object-contain" />
+                          </div>
+                          <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="space-y-1">
+                              {actualResult ? (
+                                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                                  {resultLabel}
+                                </p>
+                              ) : null}
+                              {actualResult ? (
+                                <p className="font-semibold text-base">{actualResult}</p>
+                              ) : null}
+                            </div>
+                            <div className="text-right">
+                              {memberPrediction ? (
+                                <p className="text-sm font-semibold">
+                                  Pick: {memberPrediction.homeScore}–{memberPrediction.awayScore}
+                                </p>
+                              ) : (
+                                <p className="text-sm text-muted-foreground">No prediction</p>
+                              )}
+                              {!selectedMember?.userId || selectedMember.userId !== user?.id ? (
+                                <p className="text-xs text-muted-foreground">
+                                  You: {myPrediction ? `${myPrediction.homeScore}–${myPrediction.awayScore}` : 'No prediction'}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setSelectedMemberId(null)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {selectedMatch && (
         <PredictionModal

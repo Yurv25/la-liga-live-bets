@@ -19,4 +19,24 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
   },
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) {
+            return undefined;
+          }
+
+          const pathParts = id.split("node_modules/")[1]?.split("/");
+          if (!pathParts?.length) {
+            return undefined;
+          }
+
+          const packageName = pathParts[0].startsWith("@") ? `${pathParts[0]}/${pathParts[1]}` : pathParts[0];
+          return `vendor-${packageName.replace("@", "").replace("/", "-")}`;
+        },
+      },
+    },
+  },
 }));
