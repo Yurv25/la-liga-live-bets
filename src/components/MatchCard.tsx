@@ -11,6 +11,7 @@ interface MatchCardProps {
   match: Match;
   prediction?: Prediction | null;
   onPredict: (match: Match) => void;
+  onView?: (match: Match) => void;
 }
 
 function StatusBadge({ match }: { match: Match }) {
@@ -105,7 +106,7 @@ function PredictionBadge({ prediction, match }: { prediction: Prediction; match:
   );
 }
 
-export default function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
+export default function MatchCard({ match, prediction, onPredict, onView }: MatchCardProps) {
   const showScore = match.status !== 'NS';
   const isLive = match.status === 'LIVE';
   const locked = isPredictionLocked(match);
@@ -115,7 +116,8 @@ export default function MatchCard({ match, prediction, onPredict }: MatchCardPro
     <div
       className={`rounded-xl border bg-card p-4 transition-all hover:bg-card/80 ${
         isLive ? 'border-live/30 glow-live' : 'border-border/50'
-      }`}
+      } ${onView ? 'cursor-pointer' : ''}`}
+      onClick={onView ? () => onView(match) : undefined}
     >
       {/* Status */}
       <div className="flex items-center justify-between mb-3">
@@ -124,7 +126,10 @@ export default function MatchCard({ match, prediction, onPredict }: MatchCardPro
           <Button
             size="sm"
             className="rounded-full text-xs font-semibold h-7 px-3"
-            onClick={() => onPredict(match)}
+            onClick={(event) => {
+              event.stopPropagation();
+              onPredict(match);
+            }}
           >
             {prediction ? 'EDIT' : 'PREDICT'}
           </Button>

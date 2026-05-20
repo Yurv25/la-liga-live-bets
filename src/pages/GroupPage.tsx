@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth';
 import { Match, Prediction } from '@/lib/types';
 import { ArrowLeft, Crown, CalendarDays, Trophy, Share2, MoreVertical, LogOut } from 'lucide-react';
 import MatchCard from '@/components/MatchCard';
+import MatchPredictionsModal from '@/components/MatchPredictionsModal';
 import PredictionModal from '@/components/PredictionModal';
 import UserMenu from '@/components/UserMenu';
 import {
@@ -47,6 +48,7 @@ export default function GroupPage() {
   const { user, displayName } = useAuth();
   const [activeTab, setActiveTab] = useState<GroupTab>('leaderboard');
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+  const [viewMatch, setViewMatch] = useState<Match | null>(null);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -182,6 +184,13 @@ export default function GroupPage() {
     () => new Map(selectedMemberPredictions.map((p) => [p.matchId, p] as const)),
     [selectedMemberPredictions],
   );
+
+  const viewMatchPredictions = useMemo(() => {
+    if (!viewMatch) return [] as Prediction[];
+    return groupPredictions
+      .filter((p) => p.matchId === viewMatch.id)
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }, [groupPredictions, viewMatch]);
 
   const memberPredictionCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -430,6 +439,7 @@ export default function GroupPage() {
                         match={match}
                         prediction={predictionsMap.get(match.id)}
                         onPredict={(m) => setSelectedMatch(m)}
+                        onView={(m) => setViewMatch(m)}
                       />
                     </motion.div>
                   ))}
@@ -530,6 +540,14 @@ export default function GroupPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {viewMatch && (
+        <MatchPredictionsModal
+          match={viewMatch}
+          predictions={viewMatchPredictions}
+          onClose={() => setViewMatch(null)}
+        />
+      )}
 
       {selectedMatch && (
         <PredictionModal
