@@ -205,15 +205,51 @@ export function calculatePoints(
   actualAway: number,
   matchStatus: string
 ): number {
+  // Only finished matches count
   if (matchStatus !== 'FT') return 0;
-  if (prediction.homeScore === actualHome && prediction.awayScore === actualAway) return 3;
-  const predWinner =
+
+  // Exact score
+  if (
+    prediction.homeScore === actualHome &&
+    prediction.awayScore === actualAway
+  ) {
+    return 6;
+  }
+
+  // Predicted outcome
+  const predOutcome =
     prediction.homeScore > prediction.awayScore
       ? 'home'
       : prediction.homeScore < prediction.awayScore
-        ? 'away'
-        : 'draw';
-  const actualWinner =
-    actualHome > actualAway ? 'home' : actualHome < actualAway ? 'away' : 'draw';
-  return predWinner === actualWinner ? 1 : 0;
+      ? 'away'
+      : 'draw';
+
+  // Actual outcome
+  const actualOutcome =
+    actualHome > actualAway
+      ? 'home'
+      : actualHome < actualAway
+      ? 'away'
+      : 'draw';
+
+  // Wrong outcome
+  if (predOutcome !== actualOutcome) {
+    return 0;
+  }
+
+  // Goal difference
+  const predDiff = prediction.homeScore - prediction.awayScore;
+  const actualDiff = actualHome - actualAway;
+
+  // Correct winner + correct goal difference
+  // ONLY for non-draws
+  if (
+    actualOutcome !== 'draw' &&
+    predDiff === actualDiff
+  ) {
+    return 4;
+  }
+
+  // Correct outcome only
+  return 3;
 }
