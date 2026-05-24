@@ -81,11 +81,11 @@ function TeamLogo({ src, alt }: { src: string; alt: string }) {
 function PredictionBadge({ prediction, match }: { prediction: Prediction; match: Match }) {
   const isFinished = match.status === 'FT';
   const points = isFinished ? calculatePoints(prediction, match.homeScore, match.awayScore, match.status) : 0;
-  const isExact = points === 3;
-  const isCorrectWinner = points === 1;
+  const isGreen = points >= 4;          // 6 (exact score) or 4 (correct winner + goal diff)
+  const isCorrectWinner = points === 3; // correct outcome only → yellow
 
   const color = isFinished
-    ? isExact ? 'text-primary' : isCorrectWinner ? 'text-warning' : 'text-destructive'
+    ? isGreen ? 'text-primary' : isCorrectWinner ? 'text-warning' : 'text-destructive'
     : 'text-muted-foreground';
 
   return (
@@ -95,7 +95,7 @@ function PredictionBadge({ prediction, match }: { prediction: Prediction; match:
       </span>
       {isFinished && (
         <span className={`text-[9px] font-bold rounded-full px-1.5 py-0.5 ${
-          isExact ? 'bg-primary/15 text-primary'
+          isGreen ? 'bg-primary/15 text-primary'
             : isCorrectWinner ? 'bg-warning/15 text-warning'
             : 'bg-destructive/10 text-destructive'
         }`}>
