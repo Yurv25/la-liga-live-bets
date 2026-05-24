@@ -67,13 +67,22 @@ export default function GroupPage() {
     }
   };
 
+  // Show join toast only once per mount, not on every refetch
+  const joinToastShownRef = useRef(false);
+
   // Auto-join then load
   const { data: group } = useQuery({
     queryKey: ['group', code],
     queryFn: async () => {
       if (!code) return null;
-      const g = await joinGroupByCode(code);
-      return g ?? (await fetchGroupByCode(code));
+      const result = await joinGroupByCode(code);
+      if (result && !joinToastShownRef.current) {
+        joinToastShownRef.current = true;
+        if (result.isNewMember) {
+          toast.success(`You've joined ${result.group.name}! 🎉`);
+        } 
+      }
+      return result?.group ?? (await fetchGroupByCode(code));
     },
     enabled: !!code && !!user,
   });

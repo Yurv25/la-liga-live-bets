@@ -109,31 +109,31 @@ export async function joinGroupByCode(code: string): Promise<Group | null> {
   return await fetchGroupByCode(code);
 }*/
 
-export async function joinGroupByCode(code: string): Promise<Group | null> {
+export async function joinGroupByCode(code: string): Promise<{ group: Group; isNewMember: boolean } | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
-
+ 
   const group = await fetchGroupByCode(code);
   if (!group) return null;
-
+ 
   const { data: existing } = await supabase
     .from('group_members')
     .select('group_id')
     .eq('group_id', group.id)
     .eq('user_id', user.id)
     .maybeSingle();
-
+ 
   if (!existing) {
     const { error } = await supabase
       .from('group_members')
       .insert({ group_id: group.id, user_id: user.id });
-
-    if (error) {
-      throw error;
-    }
+ 
+    if (error) throw error;
+    const freshGroup = await fetchGroupByCode(code);
+    return { group: freshGroup ?? group, isNewMember: true };
   }
-
-  return group;
+ 
+  return { group, isNewMember: false };
 }
 
 export async function leaveGroup(groupId: string): Promise<void> {
