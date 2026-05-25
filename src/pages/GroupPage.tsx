@@ -11,6 +11,7 @@ import MatchCard from '@/components/MatchCard';
 import MatchPredictionsModal from '@/components/MatchPredictionsModal';
 import PredictionModal from '@/components/PredictionModal';
 import UserMenu from '@/components/UserMenu';
+import ThemeToggle from '@/components/ThemeToggle';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -364,6 +365,7 @@ export default function GroupPage() {
             </DropdownMenuContent>
           </DropdownMenu>
           <LanguageSwitcher />
+          <ThemeToggle />
           <UserMenu />
         </div>
       </div>

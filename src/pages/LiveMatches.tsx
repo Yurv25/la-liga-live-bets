@@ -8,6 +8,7 @@ import { COMPETITIONS } from '@/lib/competitions';
 import MatchCard from '@/components/MatchCard';
 import PredictionModal from '@/components/PredictionModal';
 import UserMenu from '@/components/UserMenu';
+import ThemeToggle from '@/components/ThemeToggle';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import DateStrip from '@/components/DateStrip';
 import { Calendar, Zap } from 'lucide-react';
@@ -102,6 +103,7 @@ export default function LiveMatches() {
             </span>
           )}
           <LanguageSwitcher />
+          <ThemeToggle />
           <UserMenu />
         </div>
       </div>

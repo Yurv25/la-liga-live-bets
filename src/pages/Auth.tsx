@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import ThemeToggle from '@/components/ThemeToggle';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
@@ -59,6 +60,7 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="fixed top-4 right-4"><ThemeToggle /></div>
       <div className="fixed top-4 right-4 z-10">
         <LanguageSwitcher />
       </div>

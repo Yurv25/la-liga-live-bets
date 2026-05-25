@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { ArrowLeft, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import UserMenu from '@/components/UserMenu';
+import ThemeToggle from '@/components/ThemeToggle';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -58,6 +59,7 @@ export default function CreateGroup() {
         </div>
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
+          <ThemeToggle />
           <UserMenu />
         </div>
       </div>

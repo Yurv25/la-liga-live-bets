@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import BottomNav from "@/components/BottomNav";
 import RequireAuth from "@/components/RequireAuth";
 import { AuthProvider, useAuth } from "@/lib/auth";
+import { useTheme } from '@/hooks/useTheme';
 import Index from "./pages/Index";
 import GroupsList from "./pages/GroupsList";
 import CreateGroup from "./pages/CreateGroup";
@@ -16,6 +17,7 @@ const queryClient = new QueryClient();
 
 function AppShell() {
   const { user } = useAuth();
+  useTheme(); // bootstrap time-based theme on app load
   return (
     <>
       <Routes>
