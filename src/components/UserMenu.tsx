@@ -9,8 +9,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LogOut, User as UserIcon } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function UserMenu() {
+  const { t } = useTranslation();
   const { user, displayName, signOut } = useAuth();
   const [imgFailed, setImgFailed] = useState(false);
   if (!user) return null;
@@ -40,7 +42,7 @@ export default function UserMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer">
           <LogOut className="h-4 w-4 mr-2" />
-          Sign out
+          {t('userMenu.signOut')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

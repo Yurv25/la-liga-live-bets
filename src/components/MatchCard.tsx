@@ -6,6 +6,7 @@ import { useCallback } from 'react';
 import { calculatePoints } from '@/lib/storage';
 import { isPredictionLocked } from '@/lib/predictionRules';
 import { Lock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface MatchCardProps {
   match: Match;
@@ -15,30 +16,32 @@ interface MatchCardProps {
 }
 
 function StatusBadge({ match }: { match: Match }) {
+  const { t, i18n } = useTranslation();
+
   if (match.status === 'LIVE') {
     return (
       <span className="inline-flex items-center gap-1.5 text-xs font-bold text-live live-dot pl-4">
-        {match.minute}' LIVE
+        {t('matchCard.liveMinute', { minute: match.minute })}
       </span>
     );
   }
   if (match.status === 'HT') {
     return (
       <span className="inline-block rounded-full bg-warning/15 px-2.5 py-0.5 text-xs font-semibold text-warning">
-        HT
+        {t('matchCard.ht')}
       </span>
     );
   }
   if (match.status === 'FT') {
     return (
       <span className="inline-block rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
-        FT
+        {t('matchCard.ft')}
       </span>
     );
   }
   const dt = new Date(match.startTime);
-  const timeStr = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const dateStr = dt.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const timeStr = dt.toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' });
+  const dateStr = dt.toLocaleDateString(i18n.language, { month: 'short', day: 'numeric' });
   return (
     <div className="flex flex-col items-center">
       <span className="text-xs text-muted-foreground font-medium">{dateStr}</span>
@@ -81,8 +84,8 @@ function TeamLogo({ src, alt }: { src: string; alt: string }) {
 function PredictionBadge({ prediction, match }: { prediction: Prediction; match: Match }) {
   const isFinished = match.status === 'FT';
   const points = isFinished ? calculatePoints(prediction, match.homeScore, match.awayScore, match.status) : 0;
-  const isGreen = points >= 4;          // 6 (exact score) or 4 (correct winner + goal diff)
-  const isCorrectWinner = points === 3; // correct outcome only → yellow
+  const isGreen = points >= 4;
+  const isCorrectWinner = points === 3;
 
   const color = isFinished
     ? isGreen ? 'text-primary' : isCorrectWinner ? 'text-warning' : 'text-destructive'
@@ -107,6 +110,7 @@ function PredictionBadge({ prediction, match }: { prediction: Prediction; match:
 }
 
 export default function MatchCard({ match, prediction, onPredict, onView }: MatchCardProps) {
+  const { t } = useTranslation();
   const showScore = match.status !== 'NS';
   const isLive = match.status === 'LIVE';
   const locked = isPredictionLocked(match);
@@ -119,7 +123,6 @@ export default function MatchCard({ match, prediction, onPredict, onView }: Matc
       } ${onView ? 'cursor-pointer' : ''}`}
       onClick={onView ? () => onView(match) : undefined}
     >
-      {/* Status */}
       <div className="flex items-center justify-between mb-3">
         <StatusBadge match={match} />
         {canPredict ? (
@@ -131,17 +134,16 @@ export default function MatchCard({ match, prediction, onPredict, onView }: Matc
               onPredict(match);
             }}
           >
-            {prediction ? 'EDIT' : 'PREDICT'}
+            {prediction ? t('matchCard.edit') : t('matchCard.predict')}
           </Button>
         ) : match.status === 'NS' ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
             <Lock className="h-3 w-3" />
-            LOCKED
+            {t('matchCard.locked')}
           </span>
         ) : null}
       </div>
 
-      {/* Teams */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <TeamLogo src={match.homeLogo} alt={match.homeTeam} />
@@ -164,7 +166,7 @@ export default function MatchCard({ match, prediction, onPredict, onView }: Matc
             </span>
           </motion.div>
         ) : (
-          <span className="text-xs text-muted-foreground font-medium mx-3">VS</span>
+          <span className="text-xs text-muted-foreground font-medium mx-3">{t('common.vs')}</span>
         )}
 
         <div className="flex items-center gap-3 flex-1 min-w-0 justify-end">
@@ -173,7 +175,6 @@ export default function MatchCard({ match, prediction, onPredict, onView }: Matc
         </div>
       </div>
 
-      {/* Prediction */}
       {prediction && <PredictionBadge prediction={prediction} match={match} />}
     </div>
   );

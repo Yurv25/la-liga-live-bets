@@ -4,9 +4,12 @@ import { fetchMyGroups } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Plus, Users } from 'lucide-react';
 import UserMenu from '@/components/UserMenu';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 export default function GroupsList() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: groups = [], isLoading } = useQuery({
     queryKey: ['groups'],
@@ -20,16 +23,17 @@ export default function GroupsList() {
           <button onClick={() => navigate('/')} className="text-header-foreground/70 hover:text-header-foreground">
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <span className="text-lg font-bold font-display text-header-foreground">My Groups</span>
+          <span className="text-lg font-bold font-display text-header-foreground">{t('groups.myGroups')}</span>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/create-group')}
             className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors"
-            aria-label="Create group"
+            aria-label={t('groups.createGroupAria')}
           >
             <Plus className="h-4 w-4" />
           </button>
+          <LanguageSwitcher />
           <UserMenu />
         </div>
       </div>
@@ -44,9 +48,9 @@ export default function GroupsList() {
             <div className="h-16 w-16 rounded-2xl bg-secondary flex items-center justify-center mx-auto mb-4">
               <Users className="h-8 w-8 text-muted-foreground" />
             </div>
-            <p className="text-muted-foreground text-sm">No groups yet</p>
+            <p className="text-muted-foreground text-sm">{t('groups.noGroupsYet')}</p>
             <Button onClick={() => navigate('/create-group')} className="rounded-full">
-              Create a Group
+              {t('groups.createAGroup')}
             </Button>
           </div>
         ) : (
@@ -64,7 +68,9 @@ export default function GroupsList() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-card-foreground">{g.name}</div>
-                <div className="text-xs text-muted-foreground">{g.members.length} members</div>
+                <div className="text-xs text-muted-foreground">
+                  {t('groups.members', { count: g.members.length })}
+                </div>
               </div>
             </motion.button>
           ))

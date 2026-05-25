@@ -1,0 +1,140 @@
+{
+  "common": {
+    "brand": "Praedictio",
+    "loading": "...",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "you": "Tú",
+    "language": "Idioma",
+    "vs": "VS"
+  },
+  "nav": {
+    "matches": "Partidos",
+    "groups": "Grupos"
+  },
+  "auth": {
+    "title": "Iniciar sesión — Praedictio",
+    "tagline": "Predice, compite y gana el derecho a presumir.",
+    "continueGoogle": "Continuar con Google",
+    "or": "o",
+    "signIn": "Iniciar sesión",
+    "signUp": "Registrarse",
+    "displayNamePlaceholder": "Nombre visible (opcional)",
+    "emailPlaceholder": "Correo electrónico",
+    "passwordPlaceholder": "Contraseña",
+    "createAccount": "Crear cuenta",
+    "emailPasswordRequired": "El correo y la contraseña son obligatorios",
+    "accountCreated": "¡Cuenta creada! Revisa tu correo si se requiere confirmación."
+  },
+  "groups": {
+    "myGroups": "Mis grupos",
+    "createGroupAria": "Crear grupo",
+    "noGroupsYet": "Aún no hay grupos",
+    "createAGroup": "Crear un grupo",
+    "members_one": "{{count}} miembro",
+    "members_other": "{{count}} miembros",
+    "createGroup": "Crear grupo",
+    "groupName": "Nombre del grupo",
+    "competition": "Competición",
+    "shareLink": "Enlace para compartir",
+    "groupNamePlaceholder": "Liga de amigos",
+    "creating": "Creando...",
+    "viewGroup": "Ver grupo",
+    "couldNotCreate": "No se pudo crear el grupo",
+    "created": "¡Grupo creado!",
+    "linkCopied": "¡Enlace copiado!",
+    "inviteCopied": "¡Enlace de invitación copiado!",
+    "shareInviteAria": "Compartir enlace de invitación",
+    "leaveGroup": "Abandonar grupo",
+    "leftGroup": "Has abandonado el grupo",
+    "couldNotLeave": "No se pudo abandonar el grupo",
+    "joined": "¡Te has unido a {{groupName}}! 🎉",
+    "leaveTitle": "¿Abandonar este grupo?",
+    "leaveOwnerDescription": "Creaste este grupo. La propiedad pasará al miembro con más antigüedad, o el grupo se eliminará si eres el último miembro.",
+    "leaveMemberDescription": "Puedes volver a unirte más tarde con el enlace de invitación.",
+    "leaving": "Abandonando..."
+  },
+  "groupPage": {
+    "leaderboard": "Clasificación",
+    "matches": "Partidos",
+    "picks": "{{count}}/{{total}} pronósticos",
+    "pts": "{{points}} pts",
+    "noMatchesYet": "Aún no hay partidos",
+    "round": "Jornada {{round}}",
+    "roundUnknown": "Jornada ?",
+    "current": "ACTUAL",
+    "yourPredictions": "Tus pronósticos",
+    "memberPredictions": "Pronósticos de {{name}}",
+    "memberPredictionsFallback": "Pronósticos del miembro",
+    "finishedDescription": "Pronósticos de partidos finalizados de {{competition}} en este grupo.",
+    "competitionFallback": "competición",
+    "noFinishedMatches": "Aún no hay partidos finalizados.",
+    "finishedMatches": "Partidos finalizados",
+    "result": "Resultado",
+    "pick": "Pronóstico: {{score}}",
+    "youPick": "Tú: {{score}}",
+    "noPrediction": "Sin pronóstico",
+    "matchVs": "{{home}} vs {{away}}"
+  },
+  "matches": {
+    "schedule": "Calendario",
+    "live": "En vivo",
+    "noLiveMatches": "No hay partidos en vivo ahora",
+    "noMatchesToday": "No hay partidos hoy"
+  },
+  "matchCard": {
+    "predict": "PRONOSTICAR",
+    "edit": "EDITAR",
+    "locked": "BLOQUEADO",
+    "liveMinute": "{{minute}}' EN VIVO",
+    "ht": "DESC",
+    "ft": "FIN"
+  },
+  "predictions": {
+    "editTitle": "Editar pronóstico",
+    "makeTitle": "Haz tu pronóstico",
+    "yourPrediction": "Tu pronóstico",
+    "quickPick": "Selección rápida",
+    "lockedBeforeKickoff": "Pronóstico bloqueado ({{minutes}} min antes del inicio)",
+    "locked": "Bloqueado",
+    "updatePrediction": "Actualizar pronóstico",
+    "submitPrediction": "Enviar pronóstico",
+    "lockedToast": "Pronóstico bloqueado",
+    "signInRequired": "Inicia sesión",
+    "updated": "¡Pronóstico actualizado!",
+    "saved": "¡Pronóstico guardado!",
+    "savedDescription": "{{homeTeam}} {{homeScore}} – {{awayScore}} {{awayTeam}}",
+    "couldNotSave": "No se pudo guardar el pronóstico",
+    "finished": "Finalizado",
+    "live": "En vivo",
+    "upcoming": "Próximo",
+    "count_one": "{{count}} pronóstico",
+    "count_other": "{{count}} pronósticos",
+    "visibleFinished": "Los pronósticos son visibles porque el partido ha finalizado.",
+    "visibleLive": "Los pronósticos son visibles porque el partido está en vivo.",
+    "hiddenUntilKickoff": "Los pronósticos están ocultos hasta el inicio. Solo se listan quienes ya pronosticaron.",
+    "noPredictionsYet": "Aún no hay pronósticos para este partido.",
+    "hiddenScore": "? – ?",
+    "badgeExact": "Exacto",
+    "badgeWinner": "Ganador",
+    "badgeMiss": "Fallo"
+  },
+  "competitions": {
+    "laliga": {
+      "name": "La Liga",
+      "country": "España"
+    },
+    "worldcup": {
+      "name": "Copa del Mundo",
+      "country": "Internacional"
+    }
+  },
+  "notFound": {
+    "title": "404",
+    "message": "¡Vaya! Página no encontrada",
+    "returnHome": "Volver al inicio"
+  },
+  "userMenu": {
+    "signOut": "Cerrar sesión"
+  }
+}

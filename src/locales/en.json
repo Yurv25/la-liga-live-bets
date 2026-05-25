@@ -1,0 +1,140 @@
+{
+  "common": {
+    "brand": "Praedictio",
+    "loading": "...",
+    "cancel": "Cancel",
+    "close": "Close",
+    "you": "You",
+    "language": "Language",
+    "vs": "VS"
+  },
+  "nav": {
+    "matches": "Matches",
+    "groups": "Groups"
+  },
+  "auth": {
+    "title": "Sign in — Praedictio",
+    "tagline": "Predict, compete, win the bragging rights.",
+    "continueGoogle": "Continue with Google",
+    "or": "or",
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "displayNamePlaceholder": "Display name (optional)",
+    "emailPlaceholder": "Email",
+    "passwordPlaceholder": "Password",
+    "createAccount": "Create account",
+    "emailPasswordRequired": "Email and password are required",
+    "accountCreated": "Account created! Check your email if confirmation is required."
+  },
+  "groups": {
+    "myGroups": "My Groups",
+    "createGroupAria": "Create group",
+    "noGroupsYet": "No groups yet",
+    "createAGroup": "Create a Group",
+    "members_one": "{{count}} member",
+    "members_other": "{{count}} members",
+    "createGroup": "Create Group",
+    "groupName": "Group Name",
+    "competition": "Competition",
+    "shareLink": "Share Link",
+    "groupNamePlaceholder": "Friends League",
+    "creating": "Creating...",
+    "viewGroup": "View Group",
+    "couldNotCreate": "Could not create group",
+    "created": "Group created!",
+    "linkCopied": "Link copied!",
+    "inviteCopied": "Invite link copied!",
+    "shareInviteAria": "Share invite link",
+    "leaveGroup": "Leave group",
+    "leftGroup": "You left the group",
+    "couldNotLeave": "Could not leave group",
+    "joined": "You've joined {{groupName}}! 🎉",
+    "leaveTitle": "Leave this group?",
+    "leaveOwnerDescription": "You created this group. Ownership will transfer to the longest-standing member, or the group will be deleted if you are the last member.",
+    "leaveMemberDescription": "You can rejoin later with the invite link.",
+    "leaving": "Leaving..."
+  },
+  "groupPage": {
+    "leaderboard": "Leaderboard",
+    "matches": "Matches",
+    "picks": "{{count}}/{{total}} picks",
+    "pts": "{{points}} pts",
+    "noMatchesYet": "No matches yet",
+    "round": "Round {{round}}",
+    "roundUnknown": "Round ?",
+    "current": "CURRENT",
+    "yourPredictions": "Your predictions",
+    "memberPredictions": "{{name}}'s predictions",
+    "memberPredictionsFallback": "Member predictions",
+    "finishedDescription": "Showing {{competition}} finished match predictions for this group.",
+    "competitionFallback": "competition",
+    "noFinishedMatches": "No finished matches yet.",
+    "finishedMatches": "Finished matches",
+    "result": "Result",
+    "pick": "Pick: {{score}}",
+    "youPick": "You: {{score}}",
+    "noPrediction": "No prediction",
+    "matchVs": "{{home}} vs {{away}}"
+  },
+  "matches": {
+    "schedule": "Schedule",
+    "live": "Live",
+    "noLiveMatches": "No live matches right now",
+    "noMatchesToday": "No matches today"
+  },
+  "matchCard": {
+    "predict": "PREDICT",
+    "edit": "EDIT",
+    "locked": "LOCKED",
+    "liveMinute": "{{minute}}' LIVE",
+    "ht": "HT",
+    "ft": "FT"
+  },
+  "predictions": {
+    "editTitle": "Edit Prediction",
+    "makeTitle": "Make Your Prediction",
+    "yourPrediction": "Your Prediction",
+    "quickPick": "Quick Pick",
+    "lockedBeforeKickoff": "Prediction locked ({{minutes}} min before kickoff)",
+    "locked": "Locked",
+    "updatePrediction": "Update Prediction",
+    "submitPrediction": "Submit Prediction",
+    "lockedToast": "Prediction locked",
+    "signInRequired": "Please sign in",
+    "updated": "Prediction updated!",
+    "saved": "Prediction saved!",
+    "savedDescription": "{{homeTeam}} {{homeScore}} – {{awayScore}} {{awayTeam}}",
+    "couldNotSave": "Could not save prediction",
+    "finished": "Finished",
+    "live": "Live",
+    "upcoming": "Upcoming",
+    "count_one": "{{count}} prediction",
+    "count_other": "{{count}} predictions",
+    "visibleFinished": "Predictions are visible because the match is finished.",
+    "visibleLive": "Predictions are visible because the match is live.",
+    "hiddenUntilKickoff": "Predictions are hidden until kickoff. Only users who already predicted are listed.",
+    "noPredictionsYet": "No predictions submitted for this match yet.",
+    "hiddenScore": "? – ?",
+    "badgeExact": "Exact",
+    "badgeWinner": "Winner",
+    "badgeMiss": "Miss"
+  },
+  "competitions": {
+    "laliga": {
+      "name": "La Liga",
+      "country": "Spain"
+    },
+    "worldcup": {
+      "name": "World Cup",
+      "country": "International"
+    }
+  },
+  "notFound": {
+    "title": "404",
+    "message": "Oops! Page not found",
+    "returnHome": "Return to Home"
+  },
+  "userMenu": {
+    "signOut": "Sign out"
+  }
+}

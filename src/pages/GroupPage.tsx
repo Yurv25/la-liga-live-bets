@@ -38,10 +38,13 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 type GroupTab = 'leaderboard' | 'matches';
 
 export default function GroupPage() {
+  const { t, i18n } = useTranslation();
   const { id: code } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -58,11 +61,11 @@ export default function GroupPage() {
     setLeaving(true);
     try {
       await leaveGroup(group.id);
-      toast.success('You left the group');
+      toast.success(t('groups.leftGroup'));
       qc.invalidateQueries({ queryKey: ['groups'] });
       navigate('/groups');
     } catch (e: any) {
-      toast.error(e.message ?? 'Could not leave group');
+      toast.error(e.message ?? t('groups.couldNotLeave'));
       setLeaving(false);
     }
   };
@@ -79,7 +82,7 @@ export default function GroupPage() {
       if (result && !joinToastShownRef.current) {
         joinToastShownRef.current = true;
         if (result.isNewMember) {
-          toast.success(`You've joined ${result.group.name}! 🎉`);
+          toast.success(t('groups.joined', { groupName: result.group.name }));
         } 
       }
       return result?.group ?? (await fetchGroupByCode(code));
@@ -309,9 +312,13 @@ export default function GroupPage() {
     .sort((a, b) => b.points - a.points);
 
   const tabItems: { key: GroupTab; label: string; icon: React.ReactNode }[] = [
-    { key: 'leaderboard', label: 'Leaderboard', icon: <Trophy className="h-4 w-4" /> },
-    { key: 'matches', label: 'Matches', icon: <CalendarDays className="h-4 w-4" /> },
+    { key: 'leaderboard', label: t('groupPage.leaderboard'), icon: <Trophy className="h-4 w-4" /> },
+    { key: 'matches', label: t('groupPage.matches'), icon: <CalendarDays className="h-4 w-4" /> },
   ];
+
+  const competitionName = competition
+    ? t(`competitions.${competition.id}.name`)
+    : t('groupPage.competitionFallback');
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -324,8 +331,8 @@ export default function GroupPage() {
             <span className="text-lg font-bold font-display text-header-foreground block">{group.name}</span>
             {competition && (
               <span className="text-xs text-muted-foreground">
-                <img src={competition.logo} alt={competition.name} className="h-4 w-4 object-contain inline mr-1" />
-                  {competition.name}
+                <img src={competition.logo} alt={competitionName} className="h-4 w-4 object-contain inline mr-1" />
+                  {competitionName}
               </span>
             )}
           </div>
@@ -335,10 +342,10 @@ export default function GroupPage() {
             onClick={() => {
               const link = `${window.location.origin}/group/${group.joinCode}`;
               navigator.clipboard.writeText(link);
-              toast.success('Invite link copied!');
+              toast.success(t('groups.inviteCopied'));
             }}
             className="h-9 w-9 rounded-full bg-secondary/60 flex items-center justify-center text-foreground hover:bg-secondary transition-colors"
-            aria-label="Share invite link"
+            aria-label={t('groups.shareInviteAria')}
           >
             <Share2 className="h-4 w-4" />
           </button>
@@ -352,27 +359,28 @@ export default function GroupPage() {
                 className="cursor-pointer text-destructive focus:text-destructive"
               >
                 <LogOut className="h-4 w-4 mr-2" />
-                Leave group
+                {t('groups.leaveGroup')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <LanguageSwitcher />
           <UserMenu />
         </div>
       </div>
 
       <div className="flex gap-2 px-4 py-3 bg-header/50 border-b border-border/30">
-        {tabItems.map((t) => (
+        {tabItems.map((tabItem) => (
           <button
-            key={t.key}
-            onClick={() => setActiveTab(t.key)}
+            key={tabItem.key}
+            onClick={() => setActiveTab(tabItem.key)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-              activeTab === t.key
+              activeTab === tabItem.key
                 ? 'bg-primary text-primary-foreground shadow-lg glow-primary'
                 : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
             }`}
           >
-            {t.icon}
-            {t.label}
+            {tabItem.icon}
+            {tabItem.label}
           </button>
         ))}
       </div>
@@ -404,14 +412,16 @@ export default function GroupPage() {
                       )}
                       <div>
                         <div className="font-semibold text-sm">
-                          {isCurrentUser ? 'You' : member.displayName}
+                          {isCurrentUser ? t('common.you') : member.displayName}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {memberPredictionCount}/{competitionMatchCount} picks
+                          {t('groupPage.picks', { count: memberPredictionCount, total: competitionMatchCount })}
                         </div>
                       </div>
                     </div>
-                    <span className="font-bold text-sm font-display">{member.points} pts</span>
+                    <span className="font-bold text-sm font-display">
+                      {t('groupPage.pts', { points: member.points })}
+                    </span>
                   </div>
                 </motion.button>
               );
@@ -422,7 +432,7 @@ export default function GroupPage() {
         {activeTab === 'matches' && (
           <div className="space-y-6 overflow-y-auto" style={{ height: 'calc(100vh - 140px)' }}>
             {roundGroups.length === 0 ? (
-              <p className="text-center text-muted-foreground py-12 text-sm">No matches yet</p>
+              <p className="text-center text-muted-foreground py-12 text-sm">{t('groupPage.noMatchesYet')}</p>
             ) : (
               roundGroups.map(({ round, matches: roundMatches }) => (
                 <div
@@ -432,9 +442,9 @@ export default function GroupPage() {
                   className="space-y-3 scroll-mt-8"
                 >
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">
-                    Round {round === 0 ? '?' : round}
+                    {round === 0 ? t('groupPage.roundUnknown') : t('groupPage.round', { round })}
                     {round === currentRound && (
-                      <span className="ml-2 text-[10px] font-bold text-primary">CURRENT</span>
+                      <span className="ml-2 text-[10px] font-bold text-primary">{t('groupPage.current')}</span>
                     )}
                   </h3>
                   {roundMatches.map((match, i) => (
@@ -465,28 +475,28 @@ export default function GroupPage() {
             <DialogTitle>
               {selectedMember
                 ? selectedMember.userId === user?.id
-                  ? 'Your predictions'
-                  : `${selectedMember.displayName}'s predictions`
-                : 'Member predictions'}
+                  ? t('groupPage.yourPredictions')
+                  : t('groupPage.memberPredictions', { name: selectedMember.displayName })
+                : t('groupPage.memberPredictionsFallback')}
             </DialogTitle>
             <DialogDescription>
-              Showing {competition?.name ?? 'competition'} finished match predictions for this group.
+              {t('groupPage.finishedDescription', { competition: competitionName })}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3 max-h-[60vh] overflow-y-auto py-2">
             {finishedMatchCount === 0 ? (
-              <p className="text-center text-sm text-muted-foreground py-8">No finished matches yet.</p>
+              <p className="text-center text-sm text-muted-foreground py-8">{t('groupPage.noFinishedMatches')}</p>
             ) : (
               <div className="space-y-6">
                 <div className="flex items-center justify-between px-3 py-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                  <span>Finished matches</span>
+                  <span>{t('groupPage.finishedMatches')}</span>
                   <span>{finishedMatchCount}</span>
                 </div>
                 {finishedMatchGroups.map((group) => (
                   <div key={group.round} className="space-y-3">
                     <div className="px-3 py-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                      Round {group.round === 0 ? '?' : group.round}
+                      {group.round === 0 ? t('groupPage.roundUnknown') : t('groupPage.round', { round: group.round })}
                     </div>
                     <div className="space-y-3">
                       {group.matches.map((match) => {
@@ -502,10 +512,10 @@ export default function GroupPage() {
                               <img src={match.homeLogo} alt={match.homeTeam} className="h-8 w-8 rounded-md object-contain" />
                               <div className="min-w-0 flex-1 space-y-1">
                                 <p className="text-sm font-semibold truncate">
-                                  {match.homeTeam} vs {match.awayTeam}
+                                  {t('groupPage.matchVs', { home: match.homeTeam, away: match.awayTeam })}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
-                                  {new Date(match.startTime).toLocaleString()}
+                                  {new Date(match.startTime).toLocaleString(i18n.language)}
                                 </p>
                               </div>
                               <img src={match.awayLogo} alt={match.awayTeam} className="h-8 w-8 rounded-md object-contain" />
@@ -513,21 +523,27 @@ export default function GroupPage() {
                             <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                               <div className="space-y-1">
                                 <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                                  Result
+                                  {t('groupPage.result')}
                                 </p>
                                 <p className="font-semibold text-base">{actualResult}</p>
                               </div>
                               <div className="text-right">
                                 {memberPrediction ? (
                                   <p className="text-sm font-semibold">
-                                    Pick: {memberPrediction.homeScore}–{memberPrediction.awayScore}
+                                    {t('groupPage.pick', {
+                                      score: `${memberPrediction.homeScore}–${memberPrediction.awayScore}`,
+                                    })}
                                   </p>
                                 ) : (
-                                  <p className="text-sm text-muted-foreground">No prediction</p>
+                                  <p className="text-sm text-muted-foreground">{t('groupPage.noPrediction')}</p>
                                 )}
                                 {!selectedMember?.userId || selectedMember.userId !== user?.id ? (
                                   <p className="text-xs text-muted-foreground">
-                                    You: {myPrediction ? `${myPrediction.homeScore}–${myPrediction.awayScore}` : 'No prediction'}
+                                    {t('groupPage.youPick', {
+                                      score: myPrediction
+                                        ? `${myPrediction.homeScore}–${myPrediction.awayScore}`
+                                        : t('groupPage.noPrediction'),
+                                    })}
                                   </p>
                                 ) : null}
                               </div>
@@ -544,7 +560,7 @@ export default function GroupPage() {
 
           <DialogFooter>
             <Button variant="secondary" onClick={() => setSelectedMemberId(null)}>
-              Close
+              {t('common.close')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -571,17 +587,17 @@ export default function GroupPage() {
       <AlertDialog open={confirmLeave} onOpenChange={setConfirmLeave}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Leave this group?</AlertDialogTitle>
+            <AlertDialogTitle>{t('groups.leaveTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
               {group.createdBy === user?.id
-                ? 'You created this group. Ownership will transfer to the longest-standing member, or the group will be deleted if you are the last member.'
-                : 'You can rejoin later with the invite link.'}
+                ? t('groups.leaveOwnerDescription')
+                : t('groups.leaveMemberDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={leaving}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={leaving}>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleLeave} disabled={leaving}>
-              {leaving ? 'Leaving...' : 'Leave group'}
+              {leaving ? t('groups.leaving') : t('groups.leaveGroup')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

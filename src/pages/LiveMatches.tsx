@@ -8,9 +8,11 @@ import { COMPETITIONS } from '@/lib/competitions';
 import MatchCard from '@/components/MatchCard';
 import PredictionModal from '@/components/PredictionModal';
 import UserMenu from '@/components/UserMenu';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import DateStrip from '@/components/DateStrip';
 import { Calendar, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 type Tab = 'schedule' | 'live';
 
@@ -21,6 +23,7 @@ function startOfDay(d: Date) {
 }
 
 export default function LiveMatches() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('schedule');
   const [selectedDate, setSelectedDate] = useState<Date>(() => startOfDay(new Date()));
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
@@ -62,8 +65,8 @@ export default function LiveMatches() {
   }, [dayMatches]);
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
-    { key: 'schedule', label: 'Schedule', icon: <Calendar className="h-4 w-4" /> },
-    { key: 'live', label: 'Live', icon: <Zap className="h-4 w-4" />, count: liveCount },
+    { key: 'schedule', label: t('matches.schedule'), icon: <Calendar className="h-4 w-4" /> },
+    { key: 'live', label: t('matches.live'), icon: <Zap className="h-4 w-4" />, count: liveCount },
   ];
 
   const renderMatchCard = (match: Match, i: number) => (
@@ -89,37 +92,38 @@ export default function LiveMatches() {
             <span className="text-primary font-bold text-lg">⚽</span>
           </div>
           <span className="text-xl font-bold tracking-tight text-header-foreground font-display">
-            Praedictio
+            {t('common.brand')}
           </span>
         </div>
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
           {displayName && (
-            <span className="text-sm font-medium text-header-foreground truncate max-w-[140px]">
+            <span className="text-sm font-medium text-header-foreground truncate max-w-[100px] sm:max-w-[140px]">
               {displayName}
             </span>
           )}
+          <LanguageSwitcher />
           <UserMenu />
         </div>
       </div>
 
       <div className="flex gap-2 px-4 py-3 bg-header/50 border-b border-border/30">
-        {tabs.map((t) => (
+        {tabs.map((tabItem) => (
           <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
+            key={tabItem.key}
+            onClick={() => setTab(tabItem.key)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-              tab === t.key
+              tab === tabItem.key
                 ? 'bg-primary text-primary-foreground shadow-lg glow-primary'
                 : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
             }`}
           >
-            {t.icon}
-            {t.label}
-            {t.count !== undefined && t.count > 0 && (
+            {tabItem.icon}
+            {tabItem.label}
+            {tabItem.count !== undefined && tabItem.count > 0 && (
               <span className={`text-[10px] font-bold rounded-full px-1.5 py-0.5 ${
-                tab === t.key ? 'bg-primary-foreground/20' : 'bg-live text-destructive-foreground'
+                tab === tabItem.key ? 'bg-primary-foreground/20' : 'bg-live text-destructive-foreground'
               }`}>
-                {t.count}
+                {tabItem.count}
               </span>
             )}
           </button>
@@ -146,7 +150,7 @@ export default function LiveMatches() {
                 animate={{ opacity: 1 }}
                 className="text-center text-muted-foreground py-12 text-sm"
               >
-                No live matches right now
+                {t('matches.noLiveMatches')}
               </motion.p>
             ) : (
               <motion.div key="live-list" className="space-y-3">
@@ -160,7 +164,7 @@ export default function LiveMatches() {
               animate={{ opacity: 1 }}
               className="text-center text-muted-foreground py-12 text-sm"
             >
-              No matches today
+              {t('matches.noMatchesToday')}
             </motion.p>
           ) : (
             <motion.div key="schedule-list" className="space-y-6">
@@ -169,12 +173,12 @@ export default function LiveMatches() {
                   <div className="flex items-center gap-2 px-1">
                     <img
                       src={competition.logo}
-                      alt={competition.name}
+                      alt={t(`competitions.${competition.id}.name`)}
                       className="h-6 w-6 object-contain"
                       onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     />
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      {competition.name}
+                      {t(`competitions.${competition.id}.name`)}
                     </span>
                     <div className="flex-1 h-px bg-border/40 ml-2" />
                   </div>

@@ -7,9 +7,12 @@ import { Input } from '@/components/ui/input';
 import { ArrowLeft, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import UserMenu from '@/components/UserMenu';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 export default function CreateGroup() {
+  const { t } = useTranslation();
   const [groupName, setGroupName] = useState('');
   const [competitionId, setCompetitionId] = useState('laliga');
   const [createdCode, setCreatedCode] = useState<string | null>(null);
@@ -23,13 +26,13 @@ export default function CreateGroup() {
     try {
       const group = await createGroup(groupName.trim(), competitionId);
       if (!group) {
-        toast.error('Could not create group');
+        toast.error(t('groups.couldNotCreate'));
         return;
       }
       setCreatedCode(group.joinCode);
-      toast.success('Group created!');
+      toast.success(t('groups.created'));
     } catch (e: any) {
-      toast.error(e.message ?? 'Could not create group');
+      toast.error(e.message ?? t('groups.couldNotCreate'));
     } finally {
       setBusy(false);
     }
@@ -40,7 +43,7 @@ export default function CreateGroup() {
   const copyLink = () => {
     navigator.clipboard.writeText(shareLink);
     setCopied(true);
-    toast.success('Link copied!');
+    toast.success(t('groups.linkCopied'));
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -51,24 +54,27 @@ export default function CreateGroup() {
           <button onClick={() => navigate(-1)} className="text-header-foreground/70 hover:text-header-foreground">
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <span className="text-lg font-bold font-display text-header-foreground">Create Group</span>
+          <span className="text-lg font-bold font-display text-header-foreground">{t('groups.createGroup')}</span>
         </div>
-        <UserMenu />
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          <UserMenu />
+        </div>
       </div>
 
       <div className="p-4 max-w-lg mx-auto space-y-6">
         <div>
-          <label className="text-sm font-semibold text-foreground block mb-2">Group Name</label>
+          <label className="text-sm font-semibold text-foreground block mb-2">{t('groups.groupName')}</label>
           <Input
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
-            placeholder="Friends League"
+            placeholder={t('groups.groupNamePlaceholder')}
             className="rounded-xl"
           />
         </div>
 
         <div>
-          <label className="text-sm font-semibold text-foreground block mb-2">Competition</label>
+          <label className="text-sm font-semibold text-foreground block mb-2">{t('groups.competition')}</label>
           <div className="grid grid-cols-2 gap-2">
             {COMPETITIONS.map((comp) => (
               <button
@@ -80,10 +86,10 @@ export default function CreateGroup() {
                     : 'border-border/50 bg-card text-muted-foreground hover:border-border hover:text-foreground'
                 }`}
               >
-                <img src={comp.logo} alt={comp.name} className="h-6 w-6 object-contain" />
+                <img src={comp.logo} alt={t(`competitions.${comp.id}.name`)} className="h-6 w-6 object-contain" />
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold truncate">{comp.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{comp.country}</p>
+                  <p className="text-sm font-semibold truncate">{t(`competitions.${comp.id}.name`)}</p>
+                  <p className="text-[10px] text-muted-foreground">{t(`competitions.${comp.id}.country`)}</p>
                 </div>
               </button>
             ))}
@@ -95,12 +101,12 @@ export default function CreateGroup() {
           className="w-full font-bold py-6 text-base rounded-xl"
           disabled={!groupName.trim() || busy}
         >
-          {busy ? 'Creating...' : 'Create Group'}
+          {busy ? t('groups.creating') : t('groups.createGroup')}
         </Button>
 
         {createdCode && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-            <label className="text-sm font-semibold text-foreground block mb-2">Share Link</label>
+            <label className="text-sm font-semibold text-foreground block mb-2">{t('groups.shareLink')}</label>
             <div className="flex items-center gap-2 rounded-xl border border-border/50 bg-card p-3">
               <span className="text-sm text-muted-foreground truncate flex-1">{shareLink}</span>
               <button onClick={copyLink} className="text-primary hover:text-primary/80 transition-colors">
@@ -112,7 +118,7 @@ export default function CreateGroup() {
               className="w-full mt-4 rounded-xl"
               onClick={() => navigate(`/group/${createdCode}`)}
             >
-              View Group
+              {t('groups.viewGroup')}
             </Button>
           </motion.div>
         )}

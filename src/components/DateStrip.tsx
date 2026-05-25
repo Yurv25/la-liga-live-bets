@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface DateStripProps {
   selected: Date;
@@ -16,6 +17,7 @@ function sameDay(a: Date, b: Date) {
 }
 
 export default function DateStrip({ selected, onSelect }: DateStripProps) {
+  const { i18n } = useTranslation();
   const today = useMemo(() => startOfDay(new Date()), []);
   const days = useMemo(() => {
     const arr: Date[] = [];
@@ -38,7 +40,7 @@ export default function DateStrip({ selected, onSelect }: DateStripProps) {
       {days.map((d) => {
         const isSelected = sameDay(d, selected);
         const isToday = sameDay(d, today);
-        const weekday = d.toLocaleDateString([], { weekday: 'short' });
+        const weekday = d.toLocaleDateString(i18n.language, { weekday: 'short' });
         const day = d.getDate();
         return (
           <button

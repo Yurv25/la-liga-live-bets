@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { calculatePoints } from '@/lib/storage';
 import { Match, Prediction } from '@/lib/types';
+import { useTranslation } from 'react-i18next';
 
 interface MatchPredictionsModalProps {
   match: Match;
@@ -11,9 +12,15 @@ interface MatchPredictionsModalProps {
 }
 
 export default function MatchPredictionsModal({ match, predictions, onClose }: MatchPredictionsModalProps) {
+  const { t } = useTranslation();
   const isStarted = match.status !== 'NS';
   const hasPredictions = predictions.length > 0;
-  const statusLabel = match.status === 'FT' ? 'Finished' : match.status === 'LIVE' ? 'Live' : 'Upcoming';
+  const statusLabel =
+    match.status === 'FT'
+      ? t('predictions.finished')
+      : match.status === 'LIVE'
+        ? t('predictions.live')
+        : t('predictions.upcoming');
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
@@ -32,10 +39,10 @@ export default function MatchPredictionsModal({ match, predictions, onClose }: M
           </button>
           <div className="space-y-1">
             <h2 className="text-lg font-bold font-display">
-              {match.homeTeam} vs {match.awayTeam}
+              {t('groupPage.matchVs', { home: match.homeTeam, away: match.awayTeam })}
             </h2>
             <p className="text-xs text-muted-foreground">
-              {statusLabel} • {predictions.length} {predictions.length === 1 ? 'prediction' : 'predictions'}
+              {statusLabel} • {t('predictions.count', { count: predictions.length })}
             </p>
           </div>
         </div>
@@ -43,11 +50,13 @@ export default function MatchPredictionsModal({ match, predictions, onClose }: M
         <div className="px-4 py-4 border-b border-border/30">
           {isStarted ? (
             <p className="text-sm text-muted-foreground">
-              Predictions are visible because the match is {match.status === 'FT' ? 'finished' : 'live'}.
+              {match.status === 'FT'
+                ? t('predictions.visibleFinished')
+                : t('predictions.visibleLive')}
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Predictions are hidden until kickoff. Only users who already predicted are listed.
+              {t('predictions.hiddenUntilKickoff')}
             </p>
           )}
         </div>
@@ -55,7 +64,7 @@ export default function MatchPredictionsModal({ match, predictions, onClose }: M
         <div className="max-h-[60vh] overflow-y-auto px-4 py-4 space-y-4">
           {!hasPredictions ? (
             <div className="rounded-2xl border border-border/70 bg-muted p-6 text-center text-sm text-muted-foreground">
-              No predictions submitted for this match yet.
+              {t('predictions.noPredictionsYet')}
             </div>
           ) : (
             <div className="space-y-3">
@@ -63,16 +72,16 @@ export default function MatchPredictionsModal({ match, predictions, onClose }: M
                 const showScores = isStarted;
                 const predictionText = showScores
                   ? `${prediction.homeScore} – ${prediction.awayScore}`
-                  : '? – ?';
+                  : t('predictions.hiddenScore');
                 const points = match.status === 'FT'
                   ? calculatePoints(prediction, match.homeScore, match.awayScore, match.status)
                   : 0;
                 const badge = match.status === 'FT'
                   ? points === 3
-                    ? 'Exact'
+                    ? t('predictions.badgeExact')
                     : points === 1
-                      ? 'Winner'
-                      : 'Miss'
+                      ? t('predictions.badgeWinner')
+                      : t('predictions.badgeMiss')
                   : null;
                 const badgeClass = points === 3
                   ? 'text-primary'
@@ -103,7 +112,7 @@ export default function MatchPredictionsModal({ match, predictions, onClose }: M
 
         <div className="p-4">
           <Button onClick={onClose} className="w-full">
-            Close
+            {t('common.close')}
           </Button>
         </div>
       </motion.div>

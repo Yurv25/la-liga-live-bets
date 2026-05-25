@@ -175,8 +175,10 @@ Deno.serve(async (req) => {
     ];
 
     const mappedEvents = [...allResults, ...wcResults].map((ev: any) => mapMatch(ev));
+    liveEvents.forEach((ev: any) => {
+      console.log(`[live-period] id=${ev.id} status=${JSON.stringify(ev.status)} period=${JSON.stringify(ev.period)} minute=${JSON.stringify(ev.current_minute)}`);
+    });
     const mappedLive = liveEvents.map((m: any) => mapMatch(m));
-
     // Merge: live overrides scheduled by id
     //const liveMap = new Map(mappedLive.map((m: any) => [m.id, m]));
     //const merged = mappedEvents.map((ev: any) => liveMap.get(ev.id) || ev);
@@ -198,6 +200,7 @@ Deno.serve(async (req) => {
     console.log(
       `[laliga-matches] total=${totalCount} fetched=${allResults.length} live=${liveEvents.length} merged=${merged.length} deduped=${deduped.length}`
     );
+
 
     return new Response(JSON.stringify(deduped), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

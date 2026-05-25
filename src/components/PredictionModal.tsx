@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, Minus, Plus, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { isPredictionLocked, LOCK_BEFORE_KICKOFF_MS } from '@/lib/predictionRules';
+import { useTranslation } from 'react-i18next';
 
 interface PredictionModalProps {
   match: Match;
@@ -43,6 +44,7 @@ function ScoreInput({ value, onChange, disabled }: { value: number; onChange: (v
 }
 
 export default function PredictionModal({ match, onClose }: PredictionModalProps) {
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [homeScore, setHomeScore] = useState(0);
   const [awayScore, setAwayScore] = useState(0);
@@ -73,22 +75,27 @@ export default function PredictionModal({ match, onClose }: PredictionModalProps
 
   const handleSubmit = async () => {
     if (locked) {
-      toast.error('Prediction locked');
+      toast.error(t('predictions.lockedToast'));
       return;
     }
     if (!user) {
-      toast.error('Please sign in');
+      toast.error(t('predictions.signInRequired'));
       return;
     }
     setBusy(true);
     try {
       await savePrediction({ matchId: match.id, homeScore, awayScore });
-      toast.success(hasExisting ? 'Prediction updated!' : 'Prediction saved!', {
-        description: `${match.homeTeam} ${homeScore} – ${awayScore} ${match.awayTeam}`,
+      toast.success(hasExisting ? t('predictions.updated') : t('predictions.saved'), {
+        description: t('predictions.savedDescription', {
+          homeTeam: match.homeTeam,
+          homeScore,
+          awayScore,
+          awayTeam: match.awayTeam,
+        }),
       });
       onClose();
     } catch (e: any) {
-      toast.error(e.message ?? 'Could not save prediction');
+      toast.error(e.message ?? t('predictions.couldNotSave'));
     } finally {
       setBusy(false);
     }
@@ -107,7 +114,7 @@ export default function PredictionModal({ match, onClose }: PredictionModalProps
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h2 className="text-lg font-bold font-display">
-            {hasExisting ? 'Edit Prediction' : 'Make Your Prediction'}
+            {hasExisting ? t('predictions.editTitle') : t('predictions.makeTitle')}
           </h2>
         </div>
 
@@ -124,7 +131,7 @@ export default function PredictionModal({ match, onClose }: PredictionModalProps
             </span>
           ) : (
             <span className="text-[10px] text-muted-foreground font-medium px-2 whitespace-nowrap">
-              {new Date(match.startTime).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              {new Date(match.startTime).toLocaleString(i18n.language, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </span>
           )}
           <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
@@ -139,14 +146,14 @@ export default function PredictionModal({ match, onClose }: PredictionModalProps
           <div className="mx-4 mt-3 flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2">
             <Lock className="h-4 w-4 text-destructive" />
             <span className="text-xs font-semibold text-destructive">
-              Prediction locked ({Math.round(LOCK_BEFORE_KICKOFF_MS / 60000)} min before kickoff)
+              {t('predictions.lockedBeforeKickoff', { minutes: Math.round(LOCK_BEFORE_KICKOFF_MS / 60000) })}
             </span>
           </div>
         )}
 
         <div className="px-5 pt-5 pb-3">
           <p className="text-center text-xs text-muted-foreground mb-4 font-medium uppercase tracking-wider">
-            Your Prediction
+            {t('predictions.yourPrediction')}
           </p>
           <div className="flex items-center justify-center gap-6">
             <div className="flex flex-col items-center gap-2">
@@ -164,7 +171,7 @@ export default function PredictionModal({ match, onClose }: PredictionModalProps
         {!locked && (
           <div className="px-5 pb-2">
             <p className="text-center text-[10px] text-muted-foreground mb-2 font-medium uppercase tracking-wider">
-              Quick Pick
+              {t('predictions.quickPick')}
             </p>
             <div className="flex gap-2 justify-center">
               {QUICK_PICKS.map(([h, a]) => {
@@ -193,7 +200,13 @@ export default function PredictionModal({ match, onClose }: PredictionModalProps
             disabled={locked || busy}
             className="w-full text-base font-bold py-6 rounded-xl"
           >
-            {locked ? 'Locked' : busy ? '...' : hasExisting ? 'Update Prediction' : 'Submit Prediction'}
+            {locked
+              ? t('predictions.locked')
+              : busy
+                ? t('common.loading')
+                : hasExisting
+                  ? t('predictions.updatePrediction')
+                  : t('predictions.submitPrediction')}
           </Button>
         </div>
       </motion.div>
