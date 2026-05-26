@@ -148,7 +148,7 @@ export default function GroupPage() {
 
   const finishedMatchGroups = useMemo(() => {
     const map = new Map<number, Match[]>();
-    for (const match of pastMatches) {
+    for (const match of sortedCompetitionMatches) {
       if (match.status !== 'FT') continue;
       const round = typeof match.round === 'number' ? match.round : 0;
       if (!map.has(round)) map.set(round, []);
@@ -324,11 +324,11 @@ export default function GroupPage() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="bg-header border-b border-border/50 px-4 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <button onClick={() => navigate(-1)} className="text-header-foreground/70 hover:text-header-foreground">
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <div>
+          <div className="min-w-0">
             <span className="text-lg font-bold font-display text-header-foreground block">{group.name}</span>
             {competition && (
               <span className="text-xs text-muted-foreground">
@@ -472,7 +472,7 @@ export default function GroupPage() {
       </div>
 
       <Dialog open={!!selectedMemberId} onOpenChange={(open) => !open && setSelectedMemberId(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-lg w-full">
           <DialogHeader>
             <DialogTitle>
               {selectedMember
