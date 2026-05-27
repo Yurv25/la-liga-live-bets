@@ -16,6 +16,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -329,32 +330,33 @@ export default function GroupPage() {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="min-w-0">
-            <span className="text-lg font-bold font-display text-header-foreground block">{group.name}</span>
+            <span className="text-lg font-bold font-display text-header-foreground block truncate">{group.name}</span>
             {competition && (
               <span className="text-xs text-muted-foreground">
                 <img src={competition.logo} alt={competitionName} className="h-4 w-4 object-contain inline mr-1" />
-                  {competitionName}
+                  <span className="truncate">{competitionName}</span>
               </span>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              const link = `${window.location.origin}/group/${group.joinCode}`;
-              navigator.clipboard.writeText(link);
-              toast.success(t('groups.inviteCopied'));
-            }}
-            className="h-9 w-9 rounded-full bg-secondary/60 flex items-center justify-center text-foreground hover:bg-secondary transition-colors"
-            aria-label={t('groups.shareInviteAria')}
-          >
-            <Share2 className="h-4 w-4" />
-          </button>
+        <div className="flex items-center gap-2 shrink-0">
           <DropdownMenu>
             <DropdownMenuTrigger className="h-9 w-9 rounded-full bg-secondary/60 flex items-center justify-center text-foreground hover:bg-secondary transition-colors">
               <MoreVertical className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => {
+                  const link = `${window.location.origin}/group/${group.joinCode}`;
+                  navigator.clipboard.writeText(link);
+                  toast.success(t('groups.inviteCopied'));
+                }}
+                className="cursor-pointer"
+              >
+                <Share2 className="h-4 w-4 mr-2" />
+                {t('groups.copyInviteLink')}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => setConfirmLeave(true)}
                 className="cursor-pointer text-destructive focus:text-destructive"

@@ -97,11 +97,6 @@ export default function LiveMatches() {
           </span>
         </div>
         <div className="flex items-center gap-2 min-w-0">
-          {displayName && (
-            <span className="text-sm font-medium text-header-foreground truncate max-w-[100px] sm:max-w-[140px]">
-              {displayName}
-            </span>
-          )}
           <LanguageSwitcher />
           <ThemeToggle />
           <UserMenu />

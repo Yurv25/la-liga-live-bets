@@ -28,13 +28,6 @@ export default function GroupsList() {
           <span className="text-lg font-bold font-display text-header-foreground">{t('groups.myGroups')}</span>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate('/create-group')}
-            className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors"
-            aria-label={t('groups.createGroupAria')}
-          >
-            <Plus className="h-4 w-4" />
-          </button>
           <LanguageSwitcher />
           <ThemeToggle />
           <UserMenu />
@@ -79,6 +72,13 @@ export default function GroupsList() {
           ))
         )}
       </div>
+      <button
+        onClick={() => navigate('/create-group')}
+        className="fixed bottom-24 right-5 h-14 w-14 rounded-full bg-primary shadow-lg flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors z-40"
+        aria-label="Create group"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
     </div>
   );
 }

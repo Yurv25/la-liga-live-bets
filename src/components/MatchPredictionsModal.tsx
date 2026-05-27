@@ -76,19 +76,14 @@ export default function MatchPredictionsModal({ match, predictions, onClose }: M
                 const points = match.status === 'FT'
                   ? calculatePoints(prediction, match.homeScore, match.awayScore, match.status)
                   : 0;
-                const badge = match.status === 'FT'
-                  ? points === 3
-                    ? t('predictions.badgeExact')
-                    : points === 1
-                      ? t('predictions.badgeWinner')
-                      : t('predictions.badgeMiss')
-                  : null;
-                const badgeClass = points === 3
-                  ? 'text-primary'
-                  : points === 1
-                    ? 'text-warning'
-                    : 'text-destructive';
-
+                const badgeClass = match.status === 'FT'
+                  ? points >= 4
+                    ? 'bg-primary/15 text-primary'
+                    : points === 3
+                      ? 'bg-warning/15 text-warning'
+                      : 'bg-destructive/10 text-destructive'
+                  : '';
+                  
                 return (
                   <div
                     key={prediction.userId}
@@ -99,9 +94,11 @@ export default function MatchPredictionsModal({ match, predictions, onClose }: M
                         <p className="text-sm font-semibold">{prediction.displayName}</p>
                         <p className="text-xs text-muted-foreground">{predictionText}</p>
                       </div>
-                      {badge ? (
-                        <span className={`text-xs font-semibold ${badgeClass}`}>{badge}</span>
-                      ) : null}
+                      {match.status === 'FT' && (
+                        <span className={`text-xs font-bold rounded-full px-2 py-0.5 ${badgeClass}`}>
+                          +{points}
+                        </span>
+                      )}
                     </div>
                   </div>
                 );
