@@ -75,7 +75,20 @@
     "pick": "Pick: {{score}}",
     "youPick": "You: {{score}}",
     "noPrediction": "No prediction",
-    "matchVs": "{{home}} vs {{away}}"
+    "matchVs": "{{home}} vs {{away}}",
+    "scoringRules": "Scoring rules",
+    "howPointsCalculatedTitle": "How points are calculated",
+    "scoringIntro": "Points are awarded only after the match is finished (FT).",
+    "scoringRuleExact": "Exact score: 6 points",
+    "scoringRuleWinnerDiff": "Correct winner + correct goal difference (non-draw): 4 points",
+    "scoringRuleOutcome": "Correct outcome only (home win / away win / draw): 3 points",
+    "scoringRuleWrong": "Wrong outcome: 0 points",
+    "scoringExamples": "Examples",
+    "scoringExampleExact": "Predicted 2-1, result 2-1 -> 6 points",
+    "scoringExampleWinnerDiff": "Predicted 3-1, result 2-0 -> 4 points (same winner and goal difference)",
+    "scoringExampleOutcome": "Predicted 1-0, result 2-1 -> 3 points (same winner only)",
+    "scoringExampleWrong": "Predicted 1-1, result 2-1 -> 0 points",
+    "scoringGotIt": "Got it"
   },
   "matches": {
     "schedule": "Schedule",

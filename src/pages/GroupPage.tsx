@@ -6,7 +6,7 @@ import { useFilteredMatches } from '@/hooks/useMatches';
 import { COMPETITIONS } from '@/lib/competitions';
 import { useAuth } from '@/lib/auth';
 import { Match, Prediction } from '@/lib/types';
-import { ArrowLeft, Crown, CalendarDays, Trophy, Share2, MoreVertical, LogOut } from 'lucide-react';
+import { ArrowLeft, Crown, CalendarDays, Trophy, Share2, MoreVertical, LogOut, CircleHelp } from 'lucide-react';
 import MatchCard from '@/components/MatchCard';
 import MatchPredictionsModal from '@/components/MatchPredictionsModal';
 import PredictionModal from '@/components/PredictionModal';
@@ -55,6 +55,7 @@ export default function GroupPage() {
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [viewMatch, setViewMatch] = useState<Match | null>(null);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [showScoringRules, setShowScoringRules] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
@@ -356,6 +357,13 @@ export default function GroupPage() {
                 <Share2 className="h-4 w-4 mr-2" />
                 {t('groups.copyInviteLink')}
               </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setShowScoringRules(true)}
+                className="cursor-pointer"
+              >
+                <CircleHelp className="h-4 w-4 mr-2" />
+                {t('groupPage.scoringRules')}
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => setConfirmLeave(true)}
@@ -565,6 +573,42 @@ export default function GroupPage() {
           <DialogFooter>
             <Button variant="secondary" onClick={() => setSelectedMemberId(null)}>
               {t('common.close')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showScoringRules} onOpenChange={setShowScoringRules}>
+        <DialogContent className="max-w-lg w-full">
+          <DialogHeader>
+            <DialogTitle>{t('groupPage.howPointsCalculatedTitle')}</DialogTitle>
+            <DialogDescription>{t('groupPage.scoringIntro')}</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 text-sm">
+            <ul className="space-y-1 text-muted-foreground list-disc pl-5">
+              <li>{t('groupPage.scoringRuleExact')}</li>
+              <li>{t('groupPage.scoringRuleWinnerDiff')}</li>
+              <li>{t('groupPage.scoringRuleOutcome')}</li>
+              <li>{t('groupPage.scoringRuleWrong')}</li>
+            </ul>
+
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                {t('groupPage.scoringExamples')}
+              </p>
+              <ul className="space-y-1 text-muted-foreground list-disc pl-5">
+                <li>{t('groupPage.scoringExampleExact')}</li>
+                <li>{t('groupPage.scoringExampleWinnerDiff')}</li>
+                <li>{t('groupPage.scoringExampleOutcome')}</li>
+                <li>{t('groupPage.scoringExampleWrong')}</li>
+              </ul>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setShowScoringRules(false)}>
+              {t('groupPage.scoringGotIt')}
             </Button>
           </DialogFooter>
         </DialogContent>

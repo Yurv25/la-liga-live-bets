@@ -75,7 +75,20 @@
     "pick": "Pronóstico: {{score}}",
     "youPick": "Tú: {{score}}",
     "noPrediction": "Sin pronóstico",
-    "matchVs": "{{home}} vs {{away}}"
+    "matchVs": "{{home}} vs {{away}}",
+    "scoringRules": "Reglas de puntuación",
+    "howPointsCalculatedTitle": "Cómo se calculan los puntos",
+    "scoringIntro": "Los puntos se otorgan solo cuando el partido ha finalizado (FT).",
+    "scoringRuleExact": "Marcador exacto: 6 puntos",
+    "scoringRuleWinnerDiff": "Ganador correcto + diferencia de goles correcta (sin empate): 4 puntos",
+    "scoringRuleOutcome": "Solo resultado correcto (victoria local / visitante / empate): 3 puntos",
+    "scoringRuleWrong": "Resultado incorrecto: 0 puntos",
+    "scoringExamples": "Ejemplos",
+    "scoringExampleExact": "Pronóstico 2-1, resultado 2-1 -> 6 puntos",
+    "scoringExampleWinnerDiff": "Pronóstico 3-1, resultado 2-0 -> 4 puntos (mismo ganador y diferencia de goles)",
+    "scoringExampleOutcome": "Pronóstico 1-0, resultado 2-1 -> 3 puntos (solo mismo ganador)",
+    "scoringExampleWrong": "Pronóstico 1-1, resultado 2-1 -> 0 puntos",
+    "scoringGotIt": "Entendido"
   },
   "matches": {
     "schedule": "Calendario",
