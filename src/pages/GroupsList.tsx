@@ -4,8 +4,6 @@ import { fetchMyGroups } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Plus, Users } from 'lucide-react';
 import UserMenu from '@/components/UserMenu';
-import ThemeToggle from '@/components/ThemeToggle';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { T } from 'vitest/dist/chunks/reporters.d.BFLkQcL6.js';
@@ -28,8 +26,6 @@ export default function GroupsList() {
           <span className="text-lg font-bold font-display text-header-foreground">{t('groups.myGroups')}</span>
         </div>
         <div className="flex items-center gap-2">
-          <LanguageSwitcher />
-          <ThemeToggle />
           <UserMenu />
         </div>
       </div>

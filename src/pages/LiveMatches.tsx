@@ -8,8 +8,6 @@ import { COMPETITIONS } from '@/lib/competitions';
 import MatchCard from '@/components/MatchCard';
 import PredictionModal from '@/components/PredictionModal';
 import UserMenu from '@/components/UserMenu';
-import ThemeToggle from '@/components/ThemeToggle';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
 import DateStrip from '@/components/DateStrip';
 import { Calendar, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -97,8 +95,6 @@ export default function LiveMatches() {
           </span>
         </div>
         <div className="flex items-center gap-2 min-w-0">
-          <LanguageSwitcher />
-          <ThemeToggle />
           <UserMenu />
         </div>
       </div>
