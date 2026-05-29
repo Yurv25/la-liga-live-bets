@@ -54,5 +54,15 @@ export function useTheme() {
     }
   }
 
-  return { theme: activeTheme, toggleTheme };
+  function setTheme(theme: 'dark' | 'light') {
+    if (theme === getAutoTheme()) {
+      localStorage.removeItem(STORAGE_KEY);
+      setOverride(null);
+    } else {
+      localStorage.setItem(STORAGE_KEY, theme);
+      setOverride(theme);
+    }
+  }
+
+  return { theme: activeTheme, toggleTheme, setTheme };
 }

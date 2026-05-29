@@ -149,6 +149,9 @@
     "returnHome": "Volver al inicio"
   },
   "userMenu": {
-    "signOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión",
+    "theme": "Tema",
+    "lightMode": "Modo claro",
+    "darkMode": "Modo oscuro"
   }
 }

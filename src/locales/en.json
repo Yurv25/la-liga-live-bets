@@ -149,6 +149,9 @@
     "returnHome": "Return to Home"
   },
   "userMenu": {
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "theme": "Theme",
+    "lightMode": "Light mode",
+    "darkMode": "Dark mode"
   }
 }

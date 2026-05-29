@@ -11,7 +11,6 @@ import MatchCard from '@/components/MatchCard';
 import MatchPredictionsModal from '@/components/MatchPredictionsModal';
 import PredictionModal from '@/components/PredictionModal';
 import UserMenu from '@/components/UserMenu';
-import ThemeToggle from '@/components/ThemeToggle';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,7 +40,6 @@ import {
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 type GroupTab = 'leaderboard' | 'matches';
 
@@ -325,58 +323,60 @@ export default function GroupPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="bg-header border-b border-border/50 px-4 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3 min-w-0">
-          <button onClick={() => navigate(-1)} className="text-header-foreground/70 hover:text-header-foreground">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div className="min-w-0">
-            <span className="text-lg font-bold font-display text-header-foreground block truncate">{group.name}</span>
-            {competition && (
-              <span className="text-xs text-muted-foreground">
-                <img src={competition.logo} alt={competitionName} className="h-4 w-4 object-contain inline mr-1" />
+      <div className="bg-header border-b border-border/50">
+        <div className="px-4 py-3 flex flex-wrap items-start justify-between gap-4">
+          <div className="flex min-w-0 items-start gap-3">
+            <button onClick={() => navigate(-1)} className="text-header-foreground/70 hover:text-header-foreground mt-1">
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold font-display text-header-foreground break-words line-clamp-2">
+                {group.name}
+              </h1>
+              {competition && (
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1 min-w-0">
+                  <img src={competition.logo} alt={competitionName} className="h-4 w-4 object-contain shrink-0" />
                   <span className="truncate">{competitionName}</span>
-              </span>
-            )}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <DropdownMenu>
-            <DropdownMenuTrigger className="h-9 w-9 rounded-full bg-secondary/60 flex items-center justify-center text-foreground hover:bg-secondary transition-colors">
-              <MoreVertical className="h-4 w-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => {
-                  const link = `${window.location.origin}/group/${group.joinCode}`;
-                  navigator.clipboard.writeText(link);
-                  toast.success(t('groups.inviteCopied'));
-                }}
-                className="cursor-pointer"
-              >
-                <Share2 className="h-4 w-4 mr-2" />
-                {t('groups.copyInviteLink')}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setShowScoringRules(true)}
-                className="cursor-pointer"
-              >
-                <CircleHelp className="h-4 w-4 mr-2" />
-                {t('groupPage.scoringRules')}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => setConfirmLeave(true)}
-                className="cursor-pointer text-destructive focus:text-destructive"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                {t('groups.leaveGroup')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <LanguageSwitcher />
-          <ThemeToggle />
-          <UserMenu />
+          <div className="flex items-center gap-2 shrink-0">
+            <DropdownMenu>
+              <DropdownMenuTrigger className="h-9 w-9 rounded-full bg-secondary/60 flex items-center justify-center text-foreground hover:bg-secondary transition-colors">
+                <MoreVertical className="h-4 w-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => {
+                    const link = `${window.location.origin}/group/${group.joinCode}`;
+                    navigator.clipboard.writeText(link);
+                    toast.success(t('groups.inviteCopied'));
+                  }}
+                  className="cursor-pointer"
+                >
+                  <Share2 className="h-4 w-4 mr-2" />
+                  {t('groups.copyInviteLink')}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setShowScoringRules(true)}
+                  className="cursor-pointer"
+                >
+                  <CircleHelp className="h-4 w-4 mr-2" />
+                  {t('groupPage.scoringRules')}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setConfirmLeave(true)}
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  {t('groups.leaveGroup')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <UserMenu />
+          </div>
         </div>
       </div>
 
