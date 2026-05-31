@@ -206,12 +206,15 @@ export default function GroupPage() {
   }, [groupPredictions, viewMatch]);
 
   const memberPredictionCounts = useMemo(() => {
+    const competitionMatchIds = new Set(competitionMatches.map((m) => m.id));
     const counts = new Map<string, number>();
     groupPredictions.forEach((p) => {
-      counts.set(p.userId, (counts.get(p.userId) ?? 0) + 1);
+      if (competitionMatchIds.has(p.matchId)) {
+        counts.set(p.userId, (counts.get(p.userId) ?? 0) + 1);
+      }
     });
     return counts;
-  }, [groupPredictions]);
+  }, [groupPredictions, competitionMatches]);
 
   const predictionsMap = useMemo(() => {
     const map = new Map<string, Prediction>();

@@ -37,7 +37,7 @@ export default function CreateGroup() {
     }
   };
 
-  const shareLink = createdCode ? `${window.location.origin}/group/${createdCode}` : '';
+  const shareLink = createdCode ? `https://la-liga-live-bets.vercel.app/group/${createdCode}` : '';
 
   const copyLink = () => {
     navigator.clipboard.writeText(shareLink);
