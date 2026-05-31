@@ -349,7 +349,7 @@ export default function GroupPage() {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
                   onClick={() => {
-                    const link = `${window.location.origin}/group/${group.joinCode}`;
+                    const link = `https://la-liga-live-bets.vercel.app/group/${group.joinCode}`;
                     navigator.clipboard.writeText(link);
                     toast.success(t('groups.inviteCopied'));
                   }}
