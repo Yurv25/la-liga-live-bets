@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.praedictio.app",
+      "sha256_cert_fingerprints": [
+        "59:7B:15:DB:59:A3:F3:27:08:85:B5:9B:7F:C4:0F:AF:AE:F3:17:A7:89:9B:CA:54:DD:97:26:30:FB:DB:E6:A9"
+      ]
+    }
+  }
+]

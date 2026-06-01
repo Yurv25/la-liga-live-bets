@@ -1,5 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { App as CapacitorApp } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import BottomNav from "@/components/BottomNav";
@@ -17,7 +20,35 @@ const queryClient = new QueryClient();
 
 function AppShell() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
   useTheme(); // bootstrap time-based theme on app load
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const handleAppUrlOpen = (event: { url: string }) => {
+      try {
+        const incomingUrl = new URL(event.url);
+        const path = incomingUrl.pathname;
+
+        if (path.startsWith("/group/")) {
+          const id = path.split("/")[2];
+          if (id) {
+            navigate(`/group/${id}`);
+          }
+        }
+      } catch {
+        // ignore malformed or unsupported URLs
+      }
+    };
+
+    const listener = CapacitorApp.addListener("appUrlOpen", handleAppUrlOpen);
+    return () => {
+      listener.remove();
+    };
+  }, [navigate]);
+
   return (
     <>
       <Routes>
