@@ -114,7 +114,7 @@ export default function CreateGroup() {
             <Button
               variant="outline"
               className="w-full mt-4 rounded-xl"
-              onClick={() => navigate(`/group/${createdCode}`)}
+              onClick={() => navigate(`/group/${createdCode}`, { replace: true })}
             >
               {t('groups.viewGroup')}
             </Button>
