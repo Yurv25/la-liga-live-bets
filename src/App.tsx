@@ -25,11 +25,13 @@ function AppShell() {
   useTheme(); // bootstrap time-based theme on app load
 
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
+    if (Capacitor.getPlatform() === "web") return;
 
-    const handleAppUrlOpen = (event: { url: string }) => {
+    const navigateToGroup = (url?: string) => {
+      if (!url) return;
+
       try {
-        const incomingUrl = new URL(event.url);
+        const incomingUrl = new URL(url);
         const path = incomingUrl.pathname;
 
         if (path.startsWith("/group/")) {
@@ -43,9 +45,30 @@ function AppShell() {
       }
     };
 
-    const listener = CapacitorApp.addListener("appUrlOpen", handleAppUrlOpen);
+    let removeListener: (() => void) | undefined;
+
+    const initDeepLinking = async () => {
+      try {
+        const launchUrl = await CapacitorApp.getLaunchUrl();
+        navigateToGroup(launchUrl?.url);
+      } catch {
+        // ignore if launch URL cannot be retrieved
+      }
+
+      try {
+        const listener = await CapacitorApp.addListener("appUrlOpen", (event) => {
+          navigateToGroup(event.url);
+        });
+        removeListener = () => listener.remove();
+      } catch {
+        // ignore listener registration failure
+      }
+    };
+
+    initDeepLinking();
+
     return () => {
-      listener.remove();
+      removeListener?.();
     };
   }, [navigate]);
 
