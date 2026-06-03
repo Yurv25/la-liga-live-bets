@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
+import { Capacitor } from '@capacitor/core';
 
 interface AuthCtx {
   user: User | null;
@@ -75,10 +76,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return error ? { error: error.message } : {};
     },
     async signInGoogle() {
+      const redirectTo = Capacitor.isNativePlatform()
+        ? 'praedictio://la-liga-live-bets.vercel.app/auth/callback'
+        : window.location.origin;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.origin },
+        options: { redirectTo },
       });
+      /*const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin },
+      });*/
       return error ? { error: error.message } : {};
     },
     async signOut() {

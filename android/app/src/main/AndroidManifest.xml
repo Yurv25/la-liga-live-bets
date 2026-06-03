@@ -37,7 +37,6 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="praedictio" />
                 <data android:host="la-liga-live-bets.vercel.app" />
-                <data android:pathPrefix="/group" />
             </intent-filter>
 
         </activity>

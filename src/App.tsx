@@ -15,6 +15,7 @@ import CreateGroup from "./pages/CreateGroup";
 import GroupPage from "./pages/GroupPage";
 import AuthPage from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import { supabase } from '@/lib/supabaseClient';
 
 const queryClient = new QueryClient();
 
@@ -27,12 +28,29 @@ function AppShell() {
   useEffect(() => {
     if (Capacitor.getPlatform() === "web") return;
 
-    const navigateToGroup = (url?: string) => {
+    const handleDeepLink = async (url?: string) => {
       if (!url) return;
 
       try {
         const incomingUrl = new URL(url);
         const path = incomingUrl.pathname;
+        // Handle Google OAuth callback
+        if (path === "/auth/callback" || incomingUrl.hash.includes("access_token")) {
+          const hashParams = new URLSearchParams(incomingUrl.hash.replace("#", ""));
+          const accessToken = hashParams.get("access_token");
+          const refreshToken = hashParams.get("refresh_token");
+
+          if (accessToken && refreshToken) {
+            const { error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            if (!error) {
+              navigate("/");
+            }
+          }
+          return;
+        }
 
         if (path.startsWith("/group/")) {
           const id = path.split("/")[2];
@@ -50,14 +68,14 @@ function AppShell() {
     const initDeepLinking = async () => {
       try {
         const launchUrl = await CapacitorApp.getLaunchUrl();
-        navigateToGroup(launchUrl?.url);
+        handleDeepLink(launchUrl?.url);
       } catch {
         // ignore if launch URL cannot be retrieved
       }
 
       try {
         const listener = await CapacitorApp.addListener("appUrlOpen", (event) => {
-          navigateToGroup(event.url);
+          handleDeepLink(event.url);
         });
         removeListener = () => listener.remove();
       } catch {
