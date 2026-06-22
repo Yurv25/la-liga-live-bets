@@ -22,11 +22,13 @@ const queryClient = new QueryClient();
 function AppShell() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const platform = Capacitor.getPlatform();
+  const topInset = platform === 'web' ? '0px' : platform === 'ios' ? 'env(safe-area-inset-top, 0px)' : '48px';
 
   useTheme(); // bootstrap time-based theme on app load
 
   useEffect(() => {
-    if (Capacitor.getPlatform() === "web") return;
+    if (platform === "web") return;
 
     const handleDeepLink = async (url?: string) => {
       if (!url) return;
@@ -91,19 +93,26 @@ function AppShell() {
   }, [navigate]);
 
   return (
-    <>
-      <Routes>
-        <Route path="/auth" element={<AuthPage />} />
-        <Route element={<RequireAuth />}>
-          <Route path="/" element={<Index />} />
-          <Route path="/groups" element={<GroupsList />} />
-          <Route path="/create-group" element={<CreateGroup />} />
-          <Route path="/group/:id" element={<GroupPage />} />
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      {user && <BottomNav />}
-    </>
+    
+    <div>
+    {/* Status bar spacer — works on iOS, Android, and web */}
+    <div style={{ height: topInset }} className="fixed top-0 left-0 right-0 bg-header z-50" />
+    {/* Page content */}
+    <div style={{ paddingTop: topInset }}></div>
+    <div>
+        <Routes>
+          <Route path="/auth" element={<AuthPage />} />
+          <Route element={<RequireAuth />}>
+            <Route path="/" element={<Index />} />
+            <Route path="/groups" element={<GroupsList />} />
+            <Route path="/create-group" element={<CreateGroup />} />
+            <Route path="/group/:id" element={<GroupPage />} />
+          </Route>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        {user && <BottomNav />}
+      </div>
+    </div>
   );
 }
 

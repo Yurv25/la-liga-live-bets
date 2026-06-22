@@ -70,7 +70,7 @@ export default function GroupsList() {
       </div>
       <button
         onClick={() => navigate('/create-group')}
-        className="fixed bottom-24 right-5 h-14 w-14 rounded-full bg-primary shadow-lg flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors z-40"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] right-5 h-14 w-14 rounded-full bg-primary shadow-lg flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors z-40"
         aria-label="Create group"
       >
         <Plus className="h-6 w-6" />

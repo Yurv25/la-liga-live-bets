@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
+import { Capacitor } from '@capacitor/core';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,6 +17,8 @@ export default function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation() as { state?: { from?: string } };
   const redirectTo = location.state?.from || '/';
+  const platform = Capacitor.getPlatform();
+  const fixedTop = platform === 'web' ? '1rem' : platform === 'ios' ? 'calc(env(safe-area-inset-top, 0px) + 1rem)' : 'calc(28px + 1rem)';
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
@@ -60,8 +63,11 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="fixed top-4 right-4"><ThemeToggle /></div>
-      <div className="fixed top-4 right-4 z-10">
+      <div
+        className="fixed right-4 z-50 flex items-center gap-2"
+        style={{ top: fixedTop }}
+      >
+        <ThemeToggle />
         <LanguageSwitcher />
       </div>
       <motion.div

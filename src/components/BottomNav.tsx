@@ -13,7 +13,7 @@ export default function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 glass flex justify-around py-3 max-w-lg mx-auto safe-area-inset-bottom z-40">
+    <div className="fixed bottom-0 left-0 right-0 glass flex justify-around pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] max-w-lg mx-auto z-40">
       {navItems.map((item) => {
         const active = location.pathname === item.path;
         return (

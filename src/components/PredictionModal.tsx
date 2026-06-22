@@ -17,8 +17,8 @@ interface PredictionModalProps {
 const QUICK_PICKS: Array<[number, number]> = [
   [1, 0],
   [2, 1],
-  [1, 1],
-  [2, 0],
+  [0, 1],
+  [1, 2],
 ];
 
 function ScoreInput({ value, onChange, disabled }: { value: number; onChange: (v: number) => void; disabled?: boolean }) {

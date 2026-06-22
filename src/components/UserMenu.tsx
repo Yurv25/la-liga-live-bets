@@ -29,7 +29,7 @@ export default function UserMenu() {
   const currentLanguage = i18n.language.startsWith('es') ? 'es' : 'en';
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center text-primary text-sm font-bold hover:bg-primary/25 transition-colors overflow-hidden">
         {showImg ? (
           <img
