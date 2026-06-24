@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
     const liveMap = new Map(mappedLive.map((m: any) => [m.id, m]));
     const merged = mappedEvents.map((ev: any) => {
       const live = liveMap.get(ev.id);
-      if (live) return { ...ev, ...live, round: ev.round, leagueId: ev.leagueId, seasonId: ev.seasonId }; // keep scheduling fields from event
+      if (live) return { ...ev, ...live, round: ev.round, leagueId: ev.leagueId, seasonId: ev.seasonId, status: ev.status === 'HT' ? 'HT' : live.status }; // keep scheduling fields from event
       return ev;
     });
     mappedLive.forEach((m: any) => {

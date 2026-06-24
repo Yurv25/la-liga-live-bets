@@ -30,6 +30,7 @@ function rowToGroup(row: any, members: GroupMember[]): Group {
     competitionId: row.competition_id,
     createdBy: row.created_by,
     members,
+    pointsFrom: row.points_from ?? null, //temporary until we have a better way to handle this
   };
 }
 

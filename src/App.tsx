@@ -1,6 +1,7 @@
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -24,7 +25,8 @@ function AppShell() {
   const navigate = useNavigate();
   const platform = Capacitor.getPlatform();
   const topInset = platform === 'web' ? '0px' : platform === 'ios' ? 'env(safe-area-inset-top, 0px)' : '48px';
-
+  const authHandled = useRef(false); // track if auth callback has been handled
+  
   useTheme(); // bootstrap time-based theme on app load
 
   useEffect(() => {
@@ -38,6 +40,8 @@ function AppShell() {
         const path = incomingUrl.pathname;
         // Handle Google OAuth callback
         if (path === "/auth/callback" || incomingUrl.hash.includes("access_token")) {
+          if (authHandled.current) return; // ADD THIS — ignore if already handled
+          authHandled.current = true;      // ADD THIS — mark as handled
           const hashParams = new URLSearchParams(incomingUrl.hash.replace("#", ""));
           const accessToken = hashParams.get("access_token");
           const refreshToken = hashParams.get("refresh_token");

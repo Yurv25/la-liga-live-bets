@@ -1,4 +1,4 @@
-import { useSyncExternalStore, useMemo } from 'react';
+import { useSyncExternalStore, useMemo, useCallback } from 'react';
 import { getMatchStore } from '@/lib/matchStore';
 import { Match } from '@/lib/types';
 
@@ -11,12 +11,13 @@ export function useMatches(competitionId = 'laliga') {
   const getSnapshot = useMemo(() => () => store.getSnapshot(), [store]);
 
   const state = useSyncExternalStore(subscribe, getSnapshot);
+  const refresh = useCallback(() => store.refresh(), [store]); 
 
-  return state;
+  return {...state, refresh};
 }
 
 export function useFilteredMatches(tab: Tab, competitionId = 'laliga') {
-  const { matches, loading } = useMatches(competitionId);
+  const { matches, loading, refresh } = useMatches(competitionId);
 
   const filtered = useMemo(() => {
     if (tab === 'live') return matches.filter(m => m.status === 'LIVE' || m.status === 'HT');
@@ -29,5 +30,5 @@ export function useFilteredMatches(tab: Tab, competitionId = 'laliga') {
     [matches]
   );
 
-  return { matches: filtered, allMatches: matches, loading, liveCount };
+  return { matches: filtered, allMatches: matches, loading, liveCount, refresh };
 }

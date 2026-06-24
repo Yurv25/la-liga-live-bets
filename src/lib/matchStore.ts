@@ -149,6 +149,12 @@ class MatchStore {
     this.timers.forEach(t => clearTimeout(t));
     this.timers = [];
   }
+
+  async refresh() {
+    this.stopPolling();
+    await this.fetchMatches();
+    this.scheduleNext();
+  }
 }
 
 // Singleton per competition (scalable for future leagues)

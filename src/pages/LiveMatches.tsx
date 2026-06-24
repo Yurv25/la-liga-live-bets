@@ -12,6 +12,7 @@ import DateStrip from '@/components/DateStrip';
 import { Calendar, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { RefreshCw } from 'lucide-react'; 
 
 type Tab = 'schedule' | 'live';
 
@@ -28,7 +29,7 @@ export default function LiveMatches() {
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const { user, displayName } = useAuth();
 
-  const { allMatches, loading, liveCount } = useFilteredMatches('all');
+  const { allMatches, loading, liveCount, refresh } = useFilteredMatches('all');
 
   const { data: myPredictions = [], refetch } = useQuery({
     queryKey: ['my-predictions', user?.id],
@@ -95,6 +96,12 @@ export default function LiveMatches() {
           </span>
         </div>
         <div className="flex items-center gap-2 min-w-0">
+          <button
+            onClick={refresh}
+            disabled={loading}
+            className="text-header-foreground/70 hover:text-header-foreground transition-colors">
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
           <UserMenu />
         </div>
       </div>

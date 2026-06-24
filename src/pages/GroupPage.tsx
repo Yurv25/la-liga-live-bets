@@ -308,7 +308,9 @@ export default function GroupPage() {
       memberPreds.forEach((pred) => {
         const match = competitionMatches.find((m) => m.id === pred.matchId);
         if (match) {
-          points += calculatePoints(pred, match.homeScore, match.awayScore, match.status);
+          if (!group.pointsFrom || new Date(match.startTime) >= new Date(group.pointsFrom)) { //temporary until we have a better way to handle this
+            points += calculatePoints(pred, match.homeScore, match.awayScore, match.status);
+          }
         }
       });
       return { ...member, points };

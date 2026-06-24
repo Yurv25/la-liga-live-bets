@@ -36,4 +36,5 @@ export interface Group {
   competitionId: string;
   createdBy: string;
   members: GroupMember[];
+  pointsFrom?: string | null;
 }
