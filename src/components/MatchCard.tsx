@@ -32,6 +32,20 @@ function StatusBadge({ match }: { match: Match }) {
       </span>
     );
   }
+  if (match.status === 'ET') {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-warning live-dot pl-4">
+      ET {match.minute}'
+    </span>
+  );
+  }
+  if (match.status === 'PEN') {
+    return (
+      <span className="inline-block rounded-full bg-warning/15 px-2.5 py-0.5 text-xs font-semibold text-warning">
+        PEN
+      </span>
+    );
+  }
   if (match.status === 'FT') {
     return (
       <span className="inline-block rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">

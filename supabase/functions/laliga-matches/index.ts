@@ -18,12 +18,19 @@ const WORLD_CUP_KNOCKOUT_SEASON_ID = 188;
 function normalizeStatus(
   status: string | undefined,
   period: string | null | undefined
-): "LIVE" | "HT" | "FT" | "NS" {
+): "LIVE" | "HT" | "FT" | "NS" | "ET" | "PEN"{
   if (period === "halftime") return "HT";
+  if (period === "extra_time") return "ET";
+
   switch (status) {
     case "inprogress":
-    case "penalties":
       return "LIVE";
+    case "extratime":
+      return "ET";
+    case "aet":          // after extra time — match finished
+      return "FT";
+    case "penalties":
+      return "PEN";
     case "finished":
       return "FT";
     case "notstarted":

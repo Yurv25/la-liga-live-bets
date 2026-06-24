@@ -20,13 +20,13 @@ export function useFilteredMatches(tab: Tab, competitionId = 'laliga') {
   const { matches, loading, refresh } = useMatches(competitionId);
 
   const filtered = useMemo(() => {
-    if (tab === 'live') return matches.filter(m => m.status === 'LIVE' || m.status === 'HT');
+    if (tab === 'live') return matches.filter(m => m.status === 'LIVE' || m.status === 'HT' || m.status === 'ET' || m.status === 'PEN');
     if (tab === 'upcoming') return matches.filter(m => m.status === 'NS');
     return matches;
   }, [matches, tab]);
 
   const liveCount = useMemo(
-    () => matches.filter(m => m.status === 'LIVE' || m.status === 'HT').length,
+    () => matches.filter(m => m.status === 'LIVE' || m.status === 'HT' || m.status === 'ET' || m.status === 'PEN').length,
     [matches]
   );
 

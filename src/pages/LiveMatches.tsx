@@ -44,7 +44,7 @@ export default function LiveMatches() {
   }, [myPredictions]);
 
   const liveMatches = useMemo(
-    () => allMatches.filter((m) => m.status === 'LIVE' || m.status === 'HT'),
+    () => allMatches.filter((m) => m.status === 'LIVE' || m.status === 'HT' || m.status === 'ET' || m.status === 'PEN'),
     [allMatches]
   );
 
