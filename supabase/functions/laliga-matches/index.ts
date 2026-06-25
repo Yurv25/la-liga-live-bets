@@ -19,12 +19,16 @@ function normalizeStatus(
   status: string | undefined,
   period: string | null | undefined
 ): "LIVE" | "HT" | "FT" | "NS" | "ET" | "PEN"{
-  if (period === "halftime") return "HT";
-  if (period === "extra_time") return "ET";
+  if (status === "inprogress") {
+    if (period === "halftime" || period === "HT") return "HT";
+    if (period === "extra_time") return "ET";
+  }
 
   switch (status) {
     case "inprogress":
       return "LIVE";
+    case "halftime":                        
+      return "HT";
     case "extratime":
       return "ET";
     case "aet":          // after extra time — match finished
