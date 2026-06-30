@@ -162,7 +162,11 @@ export default function GroupPage() {
           (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
         ),
       }))
-      .sort((a, b) => b.round - a.round);
+      .sort((a, b) => {
+        const aLatest = Math.max(...a.matches.map(m => new Date(m.startTime).getTime()));
+        const bLatest = Math.max(...b.matches.map(m => new Date(m.startTime).getTime()));
+        return bLatest - aLatest;
+      });
   }, [pastMatches]);
 
   const finishedMatchCount = finishedMatchGroups.reduce((count, group) => count + group.matches.length, 0);
@@ -239,7 +243,13 @@ export default function GroupPage() {
         matches: list.sort(
           (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
         ),
-      }));
+      }))
+      // Sort by the earliest match date in the group
+      .sort((a, b) => {
+        const aEarliest = Math.min(...a.matches.map(m => new Date(m.startTime).getTime()));
+        const bEarliest = Math.min(...b.matches.map(m => new Date(m.startTime).getTime()));
+        return aEarliest - bEarliest;
+      });
   }, [competitionMatches]);
 
   const currentRound = useMemo(() => {
@@ -416,27 +426,27 @@ export default function GroupPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
                   onClick={() => setSelectedMemberId(member.userId)}
-                  className={`w-full text-left rounded-xl px-4 py-3 transition-all ${
+                  className={`w-full text-left rounded-xl px-4 py-3 transition-all overflow-hidden ${
                     i === 0 ? 'bg-primary/10 border border-primary/20' : 'bg-card border border-border/50'
                   } ${!isCurrentUser ? 'hover:border-primary/40 hover:bg-primary/5 cursor-pointer' : ''}`}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
                       {i === 0 ? (
-                        <Crown className="h-4 w-4 text-primary" />
+                        <Crown className="h-4 w-4 text-primary shrink-0" />
                       ) : (
-                        <span className="text-sm font-bold text-muted-foreground w-4 text-center">{i + 1}</span>
+                        <span className="text-sm font-bold text-muted-foreground w-4 text-center shrink-0">{i + 1}</span>
                       )}
-                      <div>
-                        <div className="font-semibold text-sm">
+                      <div min-w-0>
+                        <div className="font-semibold text-sm truncate">
                           {isCurrentUser ? t('common.you') : member.displayName}
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs text-muted-foreground truncate">
                           {t('groupPage.picks', { count: memberPredictionCount, total: competitionMatchCount })}
                         </div>
                       </div>
                     </div>
-                    <span className="font-bold text-sm font-display">
+                    <span className="font-bold text-sm font-display shrink-0 w-16 text-right">
                       {t('groupPage.pts', { points: member.points })}
                     </span>
                   </div>

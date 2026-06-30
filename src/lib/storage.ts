@@ -149,7 +149,8 @@ export async function fetchGroupPredictions(groupId: string): Promise<Prediction
   const { data, error } = await supabase
     .from('predictions')
     .select('*')
-    .in('user_id', ids);
+    .in('user_id', ids)
+    .limit(10000); // safety limit
   if (error || !data) return [];
   const nameMap = new Map(members.map((m) => [m.userId, m.displayName]));
   return data.map((row: any) => ({

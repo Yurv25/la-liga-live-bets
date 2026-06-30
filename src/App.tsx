@@ -26,7 +26,7 @@ function AppShell() {
   const platform = Capacitor.getPlatform();
   const topInset = platform === 'web' ? '0px' : platform === 'ios' ? 'env(safe-area-inset-top, 0px)' : '48px';
   const authHandled = useRef(false); // track if auth callback has been handled
-  
+
   useTheme(); // bootstrap time-based theme on app load
 
   useEffect(() => {
