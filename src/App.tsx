@@ -17,6 +17,7 @@ import GroupPage from "./pages/GroupPage";
 import AuthPage from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { supabase } from '@/lib/supabaseClient';
+import { getMatchStore } from "./lib/matchStore";
 
 const queryClient = new QueryClient();
 
@@ -95,6 +96,27 @@ function AppShell() {
       removeListener?.();
     };
   }, [navigate]);
+
+  useEffect(() => {
+    if (Capacitor.getPlatform() === 'web') return;
+
+    let removeListener: (() => void) | undefined;
+
+    const setupForegroundRefresh = async () => {
+      const listener = await CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) {
+          getMatchStore('laliga').refresh();
+        }
+      });
+      removeListener = () => listener.remove();
+    };
+
+    setupForegroundRefresh();
+
+    return () => {
+      removeListener?.();
+    };
+  }, []);
 
   return (
     

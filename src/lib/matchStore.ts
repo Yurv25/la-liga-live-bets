@@ -85,10 +85,10 @@ class MatchStore {
     this.notify();
   }
 
-  private async fetchMatches() {
+  private async fetchMatches(force = false) {
     this.setState({ loading: true });
     try {
-      const data = await fetchAllMatches();
+      const data = await fetchAllMatches(force);
       if (data.length > 0) {
         // Dedupe by id so React keys never collide even if upstream regresses
         const map = new Map<string, typeof data[number]>();
@@ -152,7 +152,7 @@ class MatchStore {
 
   async refresh() {
     this.stopPolling();
-    await this.fetchMatches();
+    await this.fetchMatches(true);
     this.scheduleNext();
   }
 }

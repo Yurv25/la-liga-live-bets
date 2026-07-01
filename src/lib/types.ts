@@ -4,7 +4,7 @@ export interface Match {
   awayTeam: string;
   homeScore: number;
   awayScore: number;
-  status: 'LIVE' | 'HT' | 'FT' | 'NS' | 'ET' | 'PEN';
+  status: 'LIVE' | 'HT' | 'FT' | 'NS' | 'ET' | 'PEN' | 'PPD' | 'CANC';
   minute: number | null;
   startTime: string;
   homeLogo: string;

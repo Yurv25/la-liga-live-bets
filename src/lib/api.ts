@@ -36,11 +36,11 @@ function resetIfNewDay() {
   }
 }
 
-export async function fetchAllMatches(): Promise<Match[]> {
+export async function fetchAllMatches(force = false): Promise<Match[]> {
   // Check if we should skip calling the API today
   resetIfNewDay();
 
-  if (apiDisabledUntilTomorrow) {
+  if (apiDisabledUntilTomorrow && !force) {
     console.log('[API] Skipping — API returned empty too many times today, using mock data');
     return [];
   }
@@ -79,18 +79,20 @@ export async function fetchAllMatches(): Promise<Match[]> {
       // API returned an empty array — could mean no matches or API issue
       consecutiveEmpties++;
       lastEmptyDate = getTodayKey();
-      console.warn(`[API] Empty response (${consecutiveEmpties}/${MAX_EMPTY_RETRIES} retries)`);
+      //console.warn(`[API] Empty response (${consecutiveEmpties}/${MAX_EMPTY_RETRIES} retries)`);
       if (consecutiveEmpties >= MAX_EMPTY_RETRIES) {
         apiDisabledUntilTomorrow = true;
-        console.warn(`[API] Disabled for today — will retry tomorrow`);
+        //console.warn(`[API] Disabled for today — will retry tomorrow`);
       }
       return [];
     }
 
     // Success! API returned real match data — reset the empty counter
     consecutiveEmpties = 0;
-    console.log(`[API] Fetched ${data.length} matches successfully`);
-
+    //console.log(`[API] Fetched ${data.length} matches successfully`);
+    if (force) {                           
+      apiDisabledUntilTomorrow = false;
+    }
     // Fix status based on minute — API sometimes returns NS for live matches
     const fixedMatches = data.map((m: any) => {
     if (m.status === 'NS' && m.minute !== null && m.minute > 0) {

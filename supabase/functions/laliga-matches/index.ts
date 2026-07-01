@@ -18,7 +18,7 @@ const WORLD_CUP_KNOCKOUT_SEASON_ID = 188;
 function normalizeStatus(
   status: string | undefined,
   period: string | null | undefined
-): "LIVE" | "HT" | "FT" | "NS" | "ET" | "PEN"{
+): "LIVE" | "HT" | "FT" | "NS" | "ET" | "PEN" | "PPD" | "CANC"{
   if (status === "inprogress") {
     if (period === "halftime" || period === "HT") return "HT";
     if (period === "extra_time") return "ET";
@@ -37,6 +37,10 @@ function normalizeStatus(
       return "PEN";
     case "finished":
       return "FT";
+    case "postponed":
+      return "PPD";
+    case "cancelled":
+      return "CANC";
     case "notstarted":
       return "NS";
     default:
@@ -196,7 +200,14 @@ Deno.serve(async (req) => {
     const liveMap = new Map(mappedLive.map((m: any) => [m.id, m]));
     const merged = mappedEvents.map((ev: any) => {
       const live = liveMap.get(ev.id);
-      if (live) return { ...ev, ...live, round: ev.round, leagueId: ev.leagueId, seasonId: ev.seasonId, status: ev.status === 'HT' ? 'HT' : live.status }; // keep scheduling fields from event
+      if (live) return { 
+        ...ev, ...live, 
+        round: ev.round, 
+        leagueId: ev.leagueId, 
+        seasonId: ev.seasonId, 
+        status: ev.status === 'HT' || ev.status === 'PPD' || ev.status === 'CANC' 
+          ? ev.status  // trust scheduled API for these statuses
+          : live.status }; // keep scheduling fields from event
       return ev;
     });
     mappedLive.forEach((m: any) => {

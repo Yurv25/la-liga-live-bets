@@ -53,6 +53,20 @@ function StatusBadge({ match }: { match: Match }) {
       </span>
     );
   }
+  if (match.status === 'PPD') {
+    return (
+      <span className="inline-block rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+        PPD
+      </span>
+    );
+  }
+  if (match.status === 'CANC') {
+    return (
+      <span className="inline-block rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-semibold text-destructive">
+        CANC
+      </span>
+    );
+  }
   const dt = new Date(match.startTime);
   const timeStr = dt.toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' });
   const dateStr = dt.toLocaleDateString(i18n.language, { month: 'short', day: 'numeric' });
