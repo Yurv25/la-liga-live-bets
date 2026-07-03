@@ -24,6 +24,9 @@ function normalizeStatus(
     if (period === "extra_time") return "ET";
   }
 
+  // AET period with finished status = match ended after extra time
+  if (period === "AET" && status === "finished") return "FT";
+  
   switch (status) {
     case "inprogress":
       return "LIVE";
@@ -57,12 +60,17 @@ function mapMatch(ev: any) {
   const homeTeamId = ev.home_team_id ?? null;
   const awayTeamId = ev.away_team_id ?? null;
 
+  // Add extra time goals to regulation score for true final score
+  const extraTime = ev.extra_time_score ?? null;
+  const homeScore = (ev.home_score ?? 0) + (extraTime?.home ?? 0);
+  const awayScore = (ev.away_score ?? 0) + (extraTime?.away ?? 0);
+
   return {
     id: String(ev.id),
     homeTeam: ev.home_team,
     awayTeam: ev.away_team,
-    homeScore: ev.home_score ?? 0,
-    awayScore: ev.away_score ?? 0,
+    homeScore,
+    awayScore,
     status: normalizeStatus(ev.status, ev.period),
     minute: ev.current_minute ?? null,
     startTime: ev.event_date ?? new Date().toISOString(),
