@@ -158,6 +158,7 @@ export default function GroupPage() {
     return Array.from(map.entries())
       .map(([round, matches]) => ({
         round,
+        roundName: matches[0]?.roundName ?? null,
         matches: matches.slice().sort(
           (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
         ),
@@ -240,6 +241,7 @@ export default function GroupPage() {
       .sort((a, b) => a[0] - b[0])
       .map(([round, list]) => ({
         round,
+        roundName: list[0]?.roundName ?? null,
         matches: list.sort(
           (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
         ),
@@ -461,7 +463,7 @@ export default function GroupPage() {
             {roundGroups.length === 0 ? (
               <p className="text-center text-muted-foreground py-12 text-sm">{t('groupPage.noMatchesYet')}</p>
             ) : (
-              roundGroups.map(({ round, matches: roundMatches }) => (
+              roundGroups.map(({ round, roundName, matches: roundMatches }) => (
                 <div
                   key={round}
                   ref={(el) => { roundRefs.current[round] = el; }}
@@ -469,7 +471,7 @@ export default function GroupPage() {
                   className="space-y-3 scroll-mt-8"
                 >
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">
-                    {round === 0 ? t('groupPage.roundUnknown') : t('groupPage.round', { round })}
+                    {roundName ? t(`roundNames.${roundName}`, { defaultValue: roundName }) : round === 0 ? t('groupPage.roundUnknown') : t('groupPage.round', { round })}
                     {round === currentRound && (
                       <span className="ml-2 text-[10px] font-bold text-primary">{t('groupPage.current')}</span>
                     )}
@@ -520,13 +522,13 @@ export default function GroupPage() {
                   <span>{t('groupPage.finishedMatches')}</span>
                   <span>{finishedMatchCount}</span>
                 </div>
-                {finishedMatchGroups.map((group) => (
-                  <div key={group.round} className="space-y-3">
+                {finishedMatchGroups.map(({ round, roundName, matches }) => (
+                  <div key={round} className="space-y-3">
                     <div className="px-3 py-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                      {group.round === 0 ? t('groupPage.roundUnknown') : t('groupPage.round', { round: group.round })}
+                      {roundName ? t(`roundNames.${roundName}`, { defaultValue: roundName }) : round === 0 ? t('groupPage.roundUnknown') : t('groupPage.round', { round })}
                     </div>
                     <div className="space-y-3">
-                      {group.matches.map((match) => {
+                      {matches.map((match) => {
                         const memberPrediction = selectedMemberPredictionMap.get(match.id);
                         const myPrediction = predictionsMap.get(match.id);
                         const actualResult = `${match.homeScore}–${match.awayScore}`;

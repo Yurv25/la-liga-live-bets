@@ -12,6 +12,7 @@ export interface Match {
   homeTeamId?: number | null;
   awayTeamId?: number | null;
   round?: number | null;
+  roundName?: string | null;
   leagueId?: number | null;
   seasonId?: number | null;
 }

@@ -26,7 +26,7 @@ function normalizeStatus(
 
   // AET period with finished status = match ended after extra time
   if (period === "AET" && status === "finished") return "FT";
-  
+
   switch (status) {
     case "inprogress":
       return "LIVE";
@@ -79,6 +79,7 @@ function mapMatch(ev: any) {
     homeLogo: teamLogoUrl(homeTeamId),
     awayLogo: teamLogoUrl(awayTeamId),
     round: ev.round_number ?? null,
+    roundName: ev.round_name ?? null, 
     leagueId: ev.league_id ?? null,
     seasonId: ev.season_id ?? null,
   };

@@ -153,5 +153,14 @@
     "theme": "Theme",
     "lightMode": "Light mode",
     "darkMode": "Dark mode"
+  },
+  "roundNames": {
+    "Round of 32": "Round of 32",
+    "Round of 16": "Round of 16",
+    "Quarterfinals": "Quarterfinals",
+    "Semifinals": "Semifinals",
+    "Final": "Final",
+    "Match for 3rd place": "3rd Place Match"
   }
+
 }
