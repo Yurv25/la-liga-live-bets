@@ -1,1 +1,1 @@
-TODO: Document your project here
+Prediction app for football matches to play with friends.
